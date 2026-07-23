@@ -8,12 +8,13 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout Mirror Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.COMPANY_PAT }}
 
       - name: Configure Git
         run: |
@@ -22,8 +23,8 @@ jobs:
 
       - name: Pull and Push
         run: |
-          # Add the company repository as a remote 
-          git remote add company https://${{ secrets.COMPANY_PAT }}@github.com/simbatechplc/real-estate-crm.git
+          # Add the company repository as a remote
+          git remote add company https://github.com/simbatechplc/real-estate-crm.git
           
           # Fetch latest changes from the company repo
           git fetch company main
@@ -32,7 +33,7 @@ jobs:
           git merge company/main --no-edit --allow-unrelated-histories
           
           # Push the updated code to your personal private repo (which triggers Vercel)
-          git push origin main# This is a basic workflow to help you get started with Actions
+          git push origin main
 
 
     
