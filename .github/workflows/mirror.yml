@@ -1,4 +1,4 @@
-name: Mirror simbatechplc -> deploy branch
+name: Mirror simbatechplc -> main
 
 on:
   schedule:
@@ -16,7 +16,7 @@ concurrency:
 env:
   UPSTREAM: simbatechplc/real-estate-crm
   UPSTREAM_BRANCH: main
-  DEPLOY_BRANCH: deploy
+  DEPLOY_BRANCH: main
 
 jobs:
   mirror:
