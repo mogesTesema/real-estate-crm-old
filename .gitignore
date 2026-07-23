@@ -1,1 +1,31 @@
+# --- Docs kept out of VCS per project preference ---
 full-featured-web-based-real-estate-crm-srs.md
+Real Estate CRM Implementation Two-Week Sprint.md
+srs-summary.md
+implimentation-plan.md
+# --- Python / Django ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+*.sqlite3
+backend/staticfiles/
+backend/media/
+.pytest_cache/
+.ruff_cache/
+celerybeat-schedule
+celerybeat-schedule.*
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
+*.log
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
