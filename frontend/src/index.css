@@ -1,0 +1,69 @@
+@import "@fontsource-variable/inter";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens (HSL). Light is default; `.dark` on <html> flips them.
+ * Palette: indigo primary/action · emerald success/money · amber warning ·
+ * red destructive · blue info · slate neutrals. Tuned for WCAG AA contrast.
+ */
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --muted: 210 20% 96%;
+    --muted-foreground: 215 16% 47%;
+    --primary: 243 75% 59%; /* indigo-600 */
+    --primary-foreground: 0 0% 100%;
+    --success: 160 84% 32%; /* emerald-600 */
+    --success-foreground: 0 0% 100%;
+    --warning: 32 95% 44%; /* amber-600 */
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%; /* red-600 */
+    --destructive-foreground: 0 0% 100%;
+    --info: 217 91% 60%; /* blue-500 */
+    --info-foreground: 0 0% 100%;
+    --border: 214 20% 90%;
+    --input: 214 20% 88%;
+    --ring: 243 75% 59%;
+    --radius: 0.6rem;
+  }
+
+  .dark {
+    --background: 222 47% 8%;
+    --foreground: 210 20% 96%;
+    --card: 222 40% 11%;
+    --card-foreground: 210 20% 96%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --primary: 243 75% 66%;
+    --primary-foreground: 222 47% 11%;
+    --success: 160 70% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 32 90% 52%;
+    --warning-foreground: 222 47% 11%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 217 91% 66%;
+    --info-foreground: 222 47% 11%;
+    --border: 217 33% 20%;
+    --input: 217 33% 22%;
+    --ring: 243 75% 66%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "cv02", "cv03", "cv04";
+  }
+  /* Money / metrics read better with tabular figures */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
