@@ -64,3 +64,21 @@ the whole MVP. See `implimentation-plan.md` for the architecture.
 
 **Deploy artifacts:** `render.yaml` (single web service), `frontend/vercel.json`,
 `DEPLOY.md` (step-by-step). Actual deploy = user pushes to GitHub + connects Render/Vercel.
+
+---
+
+## DevOps & Deployment Completion (Current Progress)
+
+**CI/CD & Testing (GitHub Actions)**
+- Fixed the automated testing workflow to correctly enforce Row-Level Security (RLS).
+- **The Issue:** The default Postgres Docker image creates a `SUPERUSER`, which inherently bypasses all RLS policies, causing isolation tests to fail.
+- **The Fix:** Implemented a two-role strategy in `ci.yml`. The `postgres` user acts as the bootstrap superuser to create the database, and a separate `crm` role is created as a `NOSUPERUSER` with `CREATEDB` privileges. Django connects as the `crm` user, ensuring RLS policies are strictly enforced during `pytest` runs. Tests are now green in CI.
+
+**Backend Deployment (Render)**
+- Backend is successfully deployed and live on Render.
+- Environment variables configured: `DATABASE_URL` (Neon), `DJANGO_SETTINGS_MODULE` (prod), `FRONTEND_ORIGIN`, and `CORS_ALLOWED_ORIGINS` to allow requests from the Vercel frontend.
+- **API Documentation:** Verified Swagger UI is accessible at `/api/docs/` and added a ReDoc endpoint at `/api/redoc/` for comprehensive API reference.
+
+**Frontend Deployment (Vercel)**
+- Frontend is successfully deployed and live on Vercel.
+- Connected the frontend to the live backend by setting the `VITE_API_URL` environment variable in Vercel to point to the Render backend URL. Full-stack integration is complete and functional.
