@@ -1,89 +1,47 @@
 # Real Estate CRM — Daily Progress Log
 
-This is our daily documentation. Each entry records what got done, how it was done, and where we left off so anyone picking up the project knows exactly what's going on.
+Quick daily notes on what got done and where things stand. See `implimentation-plan.md` for the full architecture.
 
 ---
 
-## Day 2 — Thu, Jul 23, 2026 — Backend Build & Infrastructure Setup
+## Day 1 — Thu, Jul 23, 2026 — Backend Build & Infrastructure Setup
 
-Set up the entire development environment and built the core backend from scratch. This covered the planned "Environment & Infrastructure" sprint day plus a big chunk of the Phase 1 MVP features ahead of schedule.
+Built the backend from scratch and got the first working slice of the MVP running locally.
 
-**Infrastructure & Scaffold**
-- Created the Django project with a split settings structure (`config/settings/base.py`, `dev.py`, `prod.py`, `test.py`).
-- Set up `docker-compose` with Postgres+PostGIS, Redis, and MinIO for local development.
-- Wrote the `Dockerfile` for production deployment (gunicorn on port 8000).
-- Configured linting (ruff) and testing (pytest) tooling.
+**What got done**
+- Set up the Django project with split settings (dev/prod/test), Docker Compose (Postgres, Redis, MinIO), Dockerfile, and CI pipeline.
+- Implemented tenant isolation using Postgres Row-Level Security — each tenant's data is locked down at the database level, not just in app code. The app connects as a non-superuser so RLS is actually enforced.
+- Built the user system with org hierarchy (Tenant → Company → Branch → User) and JWT auth.
+- Added role-based access control: agents see only their own stuff, managers see their branch, owners see everything in their tenant.
+- Built all the domain modules — contacts (with dedup and merge), properties (with listing status tracking), leads (capture → route → score → SLA alerts → convert), deals (pipeline stages with Kanban API), and an activity timeline.
+- Scaffolded the React frontend with login, dashboard, and pages for each module.
+- Wrote 21 backend tests covering RLS isolation, scoping, dedup, and state machines. All passing.
 
-**Core App (`apps/core`)**
-- Built multi-tenant isolation using **Postgres Row-Level Security (RLS)** — the app connects as a non-superuser role (`crm_app`) so `FORCE ROW LEVEL SECURITY` policies are actually enforced. Tenant is bound via the `app.current_tenant` session GUC.
-- Custom `User` model with org hierarchy: Tenant → Company → Branch → User.
-- JWT authentication (SimpleJWT) with token obtain/refresh endpoints.
-- **RBAC + row-level scoping** base viewset — agents see only their own records, managers see their branch, owners see everything within the tenant.
-- Custom-field engine using JSONB + a `FieldDefinition` metadata table so tenants can add fields without schema migrations.
-- Audit logging and pluggable integration adapters (console SMS/email providers that can be swapped for Twilio/SendGrid later).
-
-**Domain Apps**
-- `contacts` — CRUD with roles-as-a-set (one person can be buyer + seller), deduplication engine, and merge functionality.
-- `properties` — Property/Listing split (physical asset vs. marketing instance), listing status state machine with history tracking, media upload to object storage.
-- `leads` — Full pipeline: capture → dedupe → route (round-robin) → score → SLA breach sweep → auto-acknowledge → convert to deal.
-- `deals` — Pipeline/Stage/Opportunity models, Kanban board API, mandatory reason capture on stage moves.
-- `activities` — Polymorphic timeline (calls, notes, emails attachable to any entity).
-- `seed_demo` management command to populate realistic demo data.
-
-**Frontend (React + TypeScript + Vite)**
-- Auth flow (JWT login/logout), app shell with sidebar navigation.
-- TanStack Query hooks for all API calls, reusable DataTable component.
-- Screens for Dashboard, Leads, Contacts, Properties, and Pipeline (Kanban with drag-and-drop + reason modal).
-
-**Testing (21 tests passing)**
-- RLS isolation: ORM filtering, raw SQL, bypass-manager, and insert-without-tenant rejection.
-- API row-level scoping across roles (agent/manager/owner/cross-tenant).
-- Deduplication, merge, lead engine, and both state machines (listing + deal).
-- Live E2E walkthrough: login → capture lead → dedupe → convert → stage move (400 without reason, 200 with) → Kanban board.
-
-**Key Decisions**
-- RLS requires connecting as a **non-superuser** — superusers silently bypass all policies.
-- Background jobs (SLA sweep) iterate tenants explicitly and bind each one; an unscoped sweep correctly sees nothing.
-- Deferred for later: Elasticsearch (using Postgres FTS for now), public portal, real Twilio/SendGrid, AI features.
+**Key decisions**
+- RLS needs a non-superuser DB role — superusers silently skip all policies.
+- Background jobs (like SLA sweep) loop through tenants one by one since there's no HTTP request to pull a tenant from.
+- Deferred: Elasticsearch, public portal, Twilio/SendGrid, AI features.
 
 ---
 
-## Day 3 — Fri, Jul 24, 2026 — DevOps, Deployment & Frontend Polish
+## Day 2 — Fri, Jul 24, 2026 — DevOps, Deployment & Frontend Polish
 
-Focused on getting the full stack deployed and accessible online, fixing the CI pipeline, and completing the frontend rebuild with a proper design system.
+Got the full stack deployed and accessible online. Fixed the CI pipeline that was failing due to an RLS issue.
 
-**Frontend Rebuild (Design System + Full CRUD)**
-- Built a complete design system: color tokens (indigo/emerald/amber/red), light + dark mode, Inter font, shadcn-style components on Radix primitives.
-- Added react-hook-form for all forms, dnd-kit for real Kanban drag-and-drop with reason modal, recharts for dashboard charts, sonner for toast notifications, lucide for icons.
-- Loading skeletons, empty states, responsive layouts, and code-splitting throughout.
-- Full CRUD on all modules: Leads (capture/convert/respond), Contacts (roles/delete), Properties (image cards, create/edit, listing status changes), Pipeline, Settings (custom fields CRUD).
-- `npm run build` and `npm run lint` both clean.
+**Frontend rebuild**
+- Rebuilt the frontend with a proper design system (dark/light mode, shadcn-style components, recharts dashboard, drag-and-drop Kanban).
+- Full CRUD working on all modules: Leads, Contacts, Properties, Pipeline, and Settings.
 
-**Backend Deploy Config (Render + Neon)**
-- Wired Neon Postgres via `DATABASE_URL` using dj-database-url. The `-pooler` host is auto-rewritten to the direct endpoint because session GUCs (needed for RLS) don't survive Neon's transaction pooler.
-- **Critical finding:** Neon's default `neondb_owner` role has `BYPASSRLS=true`, which would silently disable tenant isolation. Created a dedicated `crm_app` role without bypass privileges and verified RLS enforcement on Neon.
-- Made the app single-service friendly: locmem cache when Redis isn't available, Celery optional (SLA sweep runs via `manage.py sweep_sla`).
-- Prod settings: CORS origins, `ALLOWED_HOSTS`, WhiteNoise for static files.
-- Tests never touch Neon — `config/settings/test.py` forces local Postgres.
+**CI/CD fix**
+- Tests were failing in GitHub Actions because the Postgres Docker container makes its user a superuser, which bypasses RLS. Tried demoting the user but Postgres doesn't allow a bootstrap user to demote itself.
+- Fixed it with a two-role setup: container starts with `postgres` as superuser, then a setup step creates a separate `crm` role without superuser privileges. Django connects as `crm`, RLS kicks in, tests pass.
 
-**CI/CD Fix (GitHub Actions)**
-- All 4 RLS isolation tests were failing in CI because the Postgres Docker container creates `POSTGRES_USER` as a superuser, which bypasses RLS.
-- First tried `ALTER ROLE crm NOSUPERUSER` but that fails because the bootstrap user can't demote itself.
-- **Final fix:** Two-role strategy in `.github/workflows/ci.yml`. Container starts with `postgres` as the bootstrap superuser. A setup step then creates a separate `crm` role as `NOSUPERUSER` with `CREATEDB`, transfers database ownership, and grants schema access. Django connects as `crm`, so RLS is enforced. All 21 tests now pass in CI.
+**Deployed to production**
+- Backend live on Render (`real-estate-crm-rfvc.onrender.com`). Configured env vars for Neon DB, CORS, and the frontend origin.
+- Frontend live on Vercel (`real-estate-crm-umber-seven.vercel.app`). Connected to the backend via `VITE_API_URL`.
+- Neon DB note: the default `neondb_owner` role has `BYPASSRLS`, so we created a dedicated `crm_app` role without it. Also rewrote the `-pooler` host to direct connections since session variables don't survive the transaction pooler.
+- API docs available at `/api/docs/` (Swagger) and `/api/redoc/` (ReDoc).
+- Seeded the database with demo data: agents, 22 contacts, 10 properties, 12 leads, 9 deals.
 
-**Backend Deployment (Render) — Live**
-- Backend deployed and running at `https://real-estate-crm-rfvc.onrender.com`.
-- Environment variables set: `DATABASE_URL`, `DJANGO_SETTINGS_MODULE=config.settings.prod`, `DJANGO_SECRET_KEY`, `FRONTEND_ORIGIN`, `CORS_ALLOWED_ORIGINS`.
-- API docs live at `/api/docs/` (Swagger UI) and `/api/redoc/` (ReDoc). Raw schema at `/api/schema/`.
-
-**Frontend Deployment (Vercel) — Live**
-- Frontend deployed at `https://real-estate-crm-umber-seven.vercel.app`.
-- Set `VITE_API_URL` in Vercel environment variables pointing to the Render backend URL so the frontend knows where to send API requests.
-- Full-stack integration verified — frontend and backend are communicating successfully.
-
-**Demo Data**
-- Neon seeded with realistic data: multiple agents, 22 contacts, 10 properties with photos, 12 leads (including SLA breaches), and 9 deals across pipeline stages.
-
-**Where We Left Off**
-- Phase 1 MVP is roughly 60% complete. The backend API and frontend screens are functional for all core modules.
-- Next up: finish wiring remaining CRUD flows end-to-end, implement media upload in the deployed environment, and start on lead routing/scoring business logic refinements.
+**Where things stand**
+- Phase 1 MVP is about 60% done. Core API and screens work. Next: finish remaining end-to-end flows, media uploads in production, and refine lead routing/scoring logic.
