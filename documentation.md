@@ -2,7 +2,7 @@ this is daily documentation that helps us to navigate easly across what we have 
 
 ---
 
-## Day 3 — Fri, Jul 24, 2026 — Foundation + Phase 1 MVP build
+## Day 3 — Thu, Jul 23, 2026 — Foundation + Phase 1 MVP build
 
 Went beyond the planned "data model design" and stood up a working, tested slice of
 the whole MVP. See `implimentation-plan.md` for the architecture.
@@ -41,7 +41,9 @@ the whole MVP. See `implimentation-plan.md` for the architecture.
 
 ---
 
-## Frontend rebuild + staging prep (Vercel + Render + Neon)
+## Day 4 — Fri, Jul 24, 2026 — Frontend Rebuild, DevOps & Deployments
+
+### Frontend rebuild + staging prep (Vercel + Render + Neon)
 
 **Backend config for deploy**
 - Neon Postgres wired via `DATABASE_URL` (dj-database-url). **Critical:** Neon's
@@ -65,9 +67,7 @@ the whole MVP. See `implimentation-plan.md` for the architecture.
 **Deploy artifacts:** `render.yaml` (single web service), `frontend/vercel.json`,
 `DEPLOY.md` (step-by-step). Actual deploy = user pushes to GitHub + connects Render/Vercel.
 
----
-
-## DevOps & Deployment Completion (Current Progress)
+### DevOps & Deployment Completion
 
 **CI/CD & Testing (GitHub Actions)**
 - Fixed the automated testing workflow to correctly enforce Row-Level Security (RLS).
