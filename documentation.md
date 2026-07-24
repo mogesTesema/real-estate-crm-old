@@ -1,84 +1,89 @@
-this is daily documentation that helps us to navigate easly across what we have done each day.
+# Real Estate CRM — Daily Progress Log
+
+This is our daily documentation. Each entry records what got done, how it was done, and where we left off so anyone picking up the project knows exactly what's going on.
 
 ---
 
-## Day 3 — Thu, Jul 23, 2026 — Foundation + Phase 1 MVP build
+## Day 2 — Thu, Jul 23, 2026 — Backend Build & Infrastructure Setup
 
-Went beyond the planned "data model design" and stood up a working, tested slice of
-the whole MVP. See `implimentation-plan.md` for the architecture.
+Set up the entire development environment and built the core backend from scratch. This covered the planned "Environment & Infrastructure" sprint day plus a big chunk of the Phase 1 MVP features ahead of schedule.
 
-**Backend (Django + DRF + Postgres + Celery)**
-- Scaffold: `config/` settings split, docker-compose (Postgres+PostGIS, Redis, MinIO),
-  Dockerfile, CI, ruff, pytest.
-- `apps/core`: multi-tenancy via **Postgres RLS** (non-superuser app role `crm_app`,
-  FORCE'd policies keyed to `app.current_tenant`), custom User + org hierarchy,
-  JWT auth, **RBAC + row-level scoping** base viewset, custom-field engine (JSONB +
-  FieldDefinition), audit log, integration adapters (console SMS/email).
-- Domain apps: `contacts` (roles-as-a-set, dedupe + merge), `properties`
-  (Property/Listing split, status state machine + history, media upload), `leads`
-  (capture → dedupe → route → score → SLA sweep → ack → convert), `deals`
-  (Pipeline/Stage/Opportunity, Kanban board API, mandatory-reason stage moves),
-  `activities` (polymorphic timeline).
-- `seed_demo` management command for the stakeholder demo.
+**Infrastructure & Scaffold**
+- Created the Django project with a split settings structure (`config/settings/base.py`, `dev.py`, `prod.py`, `test.py`).
+- Set up `docker-compose` with Postgres+PostGIS, Redis, and MinIO for local development.
+- Wrote the `Dockerfile` for production deployment (gunicorn on port 8000).
+- Configured linting (ruff) and testing (pytest) tooling.
 
-**Frontend (React + TS + Vite)**
-- Auth (JWT), layout/nav, TanStack Query hooks, reusable DataTable, and screens for
-  Dashboard, Leads, Contacts, Properties, and the Kanban Pipeline (with reason modal).
+**Core App (`apps/core`)**
+- Built multi-tenant isolation using **Postgres Row-Level Security (RLS)** — the app connects as a non-superuser role (`crm_app`) so `FORCE ROW LEVEL SECURITY` policies are actually enforced. Tenant is bound via the `app.current_tenant` session GUC.
+- Custom `User` model with org hierarchy: Tenant → Company → Branch → User.
+- JWT authentication (SimpleJWT) with token obtain/refresh endpoints.
+- **RBAC + row-level scoping** base viewset — agents see only their own records, managers see their branch, owners see everything within the tenant.
+- Custom-field engine using JSONB + a `FieldDefinition` metadata table so tenants can add fields without schema migrations.
+- Audit logging and pluggable integration adapters (console SMS/email providers that can be swapped for Twilio/SendGrid later).
 
-**Verified**
-- 21 backend tests pass: RLS isolation (ORM + raw SQL + bypass-manager + insert reject),
-  API row-level scoping, dedupe/merge, lead engine, both state machines.
-- Live HTTP E2E: login → capture lead (scored/assigned/SLA) → dedupe → convert →
-  stage move (400 without reason, 200 with) → Kanban board. `ruff` clean.
+**Domain Apps**
+- `contacts` — CRUD with roles-as-a-set (one person can be buyer + seller), deduplication engine, and merge functionality.
+- `properties` — Property/Listing split (physical asset vs. marketing instance), listing status state machine with history tracking, media upload to object storage.
+- `leads` — Full pipeline: capture → dedupe → route (round-robin) → score → SLA breach sweep → auto-acknowledge → convert to deal.
+- `deals` — Pipeline/Stage/Opportunity models, Kanban board API, mandatory reason capture on stage moves.
+- `activities` — Polymorphic timeline (calls, notes, emails attachable to any entity).
+- `seed_demo` management command to populate realistic demo data.
 
-**Notes / decisions**
-- RLS requires the app to connect as a **non-superuser** (`crm_app`, created by
-  `deploy/postgres-init.sql`); superusers bypass RLS.
-- Background jobs (SLA sweep) have no request tenant, so they **iterate tenants** and
-  bind each — an unscoped sweep correctly sees nothing (isolation proven).
-- Deferred per plan: Elasticsearch (Postgres FTS for now), public portal, real
-  Twilio/SendGrid, AI features.
+**Frontend (React + TypeScript + Vite)**
+- Auth flow (JWT login/logout), app shell with sidebar navigation.
+- TanStack Query hooks for all API calls, reusable DataTable component.
+- Screens for Dashboard, Leads, Contacts, Properties, and Pipeline (Kanban with drag-and-drop + reason modal).
+
+**Testing (21 tests passing)**
+- RLS isolation: ORM filtering, raw SQL, bypass-manager, and insert-without-tenant rejection.
+- API row-level scoping across roles (agent/manager/owner/cross-tenant).
+- Deduplication, merge, lead engine, and both state machines (listing + deal).
+- Live E2E walkthrough: login → capture lead → dedupe → convert → stage move (400 without reason, 200 with) → Kanban board.
+
+**Key Decisions**
+- RLS requires connecting as a **non-superuser** — superusers silently bypass all policies.
+- Background jobs (SLA sweep) iterate tenants explicitly and bind each one; an unscoped sweep correctly sees nothing.
+- Deferred for later: Elasticsearch (using Postgres FTS for now), public portal, real Twilio/SendGrid, AI features.
 
 ---
 
-## Day 4 — Fri, Jul 24, 2026 — Frontend Rebuild, DevOps & Deployments
+## Day 3 — Fri, Jul 24, 2026 — DevOps, Deployment & Frontend Polish
 
-### Frontend rebuild + staging prep (Vercel + Render + Neon)
+Focused on getting the full stack deployed and accessible online, fixing the CI pipeline, and completing the frontend rebuild with a proper design system.
 
-**Backend config for deploy**
-- Neon Postgres wired via `DATABASE_URL` (dj-database-url). **Critical:** Neon's
-  `neondb_owner` has BYPASSRLS → created a dedicated **`crm_app`** role (non-bypassrls) so
-  tenant RLS is actually enforced; verified isolation on Neon. `-pooler` host auto-rewritten
-  to the direct endpoint (session GUCs don't survive the transaction pooler).
-- Single-service ready: locmem cache (no Redis), Celery optional, SLA sweep via
-  `manage.py sweep_sla`. Prod settings: CORS, ALLOWED_HOSTS, WhiteNoise.
-- **Tests never hit Neon**: `config/settings/test.py` + `pytest.ini --ds` force local
-  Postgres. 21 tests still green; ruff clean.
+**Frontend Rebuild (Design System + Full CRUD)**
+- Built a complete design system: color tokens (indigo/emerald/amber/red), light + dark mode, Inter font, shadcn-style components on Radix primitives.
+- Added react-hook-form for all forms, dnd-kit for real Kanban drag-and-drop with reason modal, recharts for dashboard charts, sonner for toast notifications, lucide for icons.
+- Loading skeletons, empty states, responsive layouts, and code-splitting throughout.
+- Full CRUD on all modules: Leads (capture/convert/respond), Contacts (roles/delete), Properties (image cards, create/edit, listing status changes), Pipeline, Settings (custom fields CRUD).
+- `npm run build` and `npm run lint` both clean.
 
-**Frontend — full rebuild (design system + full CRUD)**
-- Design tokens (indigo/emerald/amber/red, light+dark, Inter), shadcn-style components on
-  Radix, react-hook-form, dnd-kit Kanban (real drag + reason modal), recharts dashboard,
-  sonner toasts, lucide icons. Loading skeletons, empty states, responsive, code-split.
-- Full CRUD: Leads (capture/convert/respond), Contacts (roles/delete), Properties (image
-  cards, create/edit, listing status state machine), Pipeline, Settings (custom fields CRUD).
-- `npm run build` + `npm run lint` clean. Neon seeded with realistic demo data
-  (agents, 22 contacts, 10 properties w/ photos, 12 leads incl. SLA breaches, 9 deals).
+**Backend Deploy Config (Render + Neon)**
+- Wired Neon Postgres via `DATABASE_URL` using dj-database-url. The `-pooler` host is auto-rewritten to the direct endpoint because session GUCs (needed for RLS) don't survive Neon's transaction pooler.
+- **Critical finding:** Neon's default `neondb_owner` role has `BYPASSRLS=true`, which would silently disable tenant isolation. Created a dedicated `crm_app` role without bypass privileges and verified RLS enforcement on Neon.
+- Made the app single-service friendly: locmem cache when Redis isn't available, Celery optional (SLA sweep runs via `manage.py sweep_sla`).
+- Prod settings: CORS origins, `ALLOWED_HOSTS`, WhiteNoise for static files.
+- Tests never touch Neon — `config/settings/test.py` forces local Postgres.
 
-**Deploy artifacts:** `render.yaml` (single web service), `frontend/vercel.json`,
-`DEPLOY.md` (step-by-step). Actual deploy = user pushes to GitHub + connects Render/Vercel.
+**CI/CD Fix (GitHub Actions)**
+- All 4 RLS isolation tests were failing in CI because the Postgres Docker container creates `POSTGRES_USER` as a superuser, which bypasses RLS.
+- First tried `ALTER ROLE crm NOSUPERUSER` but that fails because the bootstrap user can't demote itself.
+- **Final fix:** Two-role strategy in `.github/workflows/ci.yml`. Container starts with `postgres` as the bootstrap superuser. A setup step then creates a separate `crm` role as `NOSUPERUSER` with `CREATEDB`, transfers database ownership, and grants schema access. Django connects as `crm`, so RLS is enforced. All 21 tests now pass in CI.
 
-### DevOps & Deployment Completion
+**Backend Deployment (Render) — Live**
+- Backend deployed and running at `https://real-estate-crm-rfvc.onrender.com`.
+- Environment variables set: `DATABASE_URL`, `DJANGO_SETTINGS_MODULE=config.settings.prod`, `DJANGO_SECRET_KEY`, `FRONTEND_ORIGIN`, `CORS_ALLOWED_ORIGINS`.
+- API docs live at `/api/docs/` (Swagger UI) and `/api/redoc/` (ReDoc). Raw schema at `/api/schema/`.
 
-**CI/CD & Testing (GitHub Actions)**
-- Fixed the automated testing workflow to correctly enforce Row-Level Security (RLS).
-- **The Issue:** The default Postgres Docker image creates a `SUPERUSER`, which inherently bypasses all RLS policies, causing isolation tests to fail.
-- **The Fix:** Implemented a two-role strategy in `ci.yml`. The `postgres` user acts as the bootstrap superuser to create the database, and a separate `crm` role is created as a `NOSUPERUSER` with `CREATEDB` privileges. Django connects as the `crm` user, ensuring RLS policies are strictly enforced during `pytest` runs. Tests are now green in CI.
+**Frontend Deployment (Vercel) — Live**
+- Frontend deployed at `https://real-estate-crm-umber-seven.vercel.app`.
+- Set `VITE_API_URL` in Vercel environment variables pointing to the Render backend URL so the frontend knows where to send API requests.
+- Full-stack integration verified — frontend and backend are communicating successfully.
 
-**Backend Deployment (Render)**
-- Backend is successfully deployed and live on Render.
-- Environment variables configured: `DATABASE_URL` (Neon), `DJANGO_SETTINGS_MODULE` (prod), `FRONTEND_ORIGIN`, and `CORS_ALLOWED_ORIGINS` to allow requests from the Vercel frontend.
-- **API Documentation:** Verified Swagger UI is accessible at `/api/docs/` and added a ReDoc endpoint at `/api/redoc/` for comprehensive API reference.
+**Demo Data**
+- Neon seeded with realistic data: multiple agents, 22 contacts, 10 properties with photos, 12 leads (including SLA breaches), and 9 deals across pipeline stages.
 
-**Frontend Deployment (Vercel)**
-- Frontend is successfully deployed and live on Vercel.
-- Connected the frontend to the live backend by setting the `VITE_API_URL` environment variable in Vercel to point to the Render backend URL. Full-stack integration is complete and functional.
+**Where We Left Off**
+- Phase 1 MVP is roughly 60% complete. The backend API and frontend screens are functional for all core modules.
+- Next up: finish wiring remaining CRUD flows end-to-end, implement media upload in the deployed environment, and start on lead routing/scoring business logic refinements.
