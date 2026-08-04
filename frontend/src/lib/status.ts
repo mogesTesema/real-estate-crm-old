@@ -1,15 +1,22 @@
 /**
- * Single source of truth for domain status → colour (plan §2 design system).
- * Every StatusBadge reads from here so colour semantics are consistent app-wide.
+ * Single source of truth for domain status → colour (design system §3).
+ * Badge rule: soft pastel background (subtle) + dark saturated text + label.
+ * Every StatusBadge reads from here so semantics stay consistent app-wide.
  */
-export type Tone = "success" | "warning" | "destructive" | "info" | "primary" | "muted";
+export type Tone =
+  | "success"
+  | "warning"
+  | "destructive"
+  | "info"
+  | "primary"
+  | "muted";
 
 const toneClasses: Record<Tone, string> = {
-  success: "bg-success/10 text-success ring-success/20",
-  warning: "bg-warning/10 text-warning ring-warning/20",
-  destructive: "bg-destructive/10 text-destructive ring-destructive/20",
-  info: "bg-info/10 text-info ring-info/20",
-  primary: "bg-primary/10 text-primary ring-primary/20",
+  success: "bg-success-subtle text-success ring-success/25",
+  warning: "bg-warning-subtle text-warning ring-warning/25",
+  destructive: "bg-destructive-subtle text-destructive ring-destructive/25",
+  info: "bg-info-subtle text-info ring-info/25",
+  primary: "bg-primary-subtle text-primary ring-primary/25",
   muted: "bg-muted text-muted-foreground ring-border",
 };
 
@@ -17,15 +24,26 @@ export function toneClass(tone: Tone) {
   return toneClasses[tone];
 }
 
+/** Dot colour for inline status indicators (e.g. Kanban, timelines). */
+export const toneDot: Record<Tone, string> = {
+  success: "bg-success",
+  warning: "bg-warning",
+  destructive: "bg-destructive",
+  info: "bg-info",
+  primary: "bg-primary",
+  muted: "bg-muted-foreground/50",
+};
+
+// Listing status matrix (design doc §3 — Property Listings).
 export const listingStatusTone: Record<string, Tone> = {
   draft: "muted",
   active: "success",
   under_offer: "warning",
-  reserved: "info",
+  reserved: "primary",
   sold: "primary",
   rented: "info",
   off_market: "muted",
-  expired: "destructive",
+  expired: "muted",
 };
 
 export const leadStatusTone: Record<string, Tone> = {

@@ -17,15 +17,17 @@ export function SelectField({
   onChange,
   options,
   placeholder = "Select…",
+  className,
 }: {
   value: string | undefined;
   onChange: (v: string) => void;
   options: Option[];
   placeholder?: string;
+  className?: string;
 }) {
   return (
     <Select value={value || undefined} onValueChange={onChange}>
-      <SelectTrigger>
+      <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

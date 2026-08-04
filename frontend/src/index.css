@@ -4,54 +4,81 @@
 @tailwind utilities;
 
 /*
- * Design tokens (HSL). Light is default; `.dark` on <html> flips them.
- * Palette: indigo primary/action · emerald success/money · amber warning ·
- * red destructive · blue info · slate neutrals. Tuned for WCAG AA contrast.
+ * Design tokens (HSL) — see ui-ux-design-principle-coloring.md §2.
+ * 3-tier: primitive (raw HSL) → semantic (purpose) → component (usage).
+ * Light is default; `.dark` on <html> flips them. Brand = blue-600.
  */
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 222 47% 11%;
+    /* Surfaces */
+    --background: 210 40% 98%;       /* slate-50 canvas */
+    --foreground: 222 47% 11%;       /* slate-900 */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
-    --muted: 210 20% 96%;
-    --muted-foreground: 215 16% 47%;
-    --primary: 243 75% 59%; /* indigo-600 */
+    --muted: 210 40% 96%;            /* slate-100 */
+    --muted-foreground: 215 16% 47%; /* slate-600 */
+    --border: 214 32% 91%;           /* slate-200 */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    /* Brand — blue-600 */
+    --primary: 221 83% 53%;          /* #2563EB */
     --primary-foreground: 0 0% 100%;
-    --success: 160 84% 32%; /* emerald-600 */
+    --primary-hover: 224 76% 48%;    /* #1D4ED8 */
+    --primary-subtle: 214 100% 97%;  /* blue-50 */
+
+    /* Semantic status (text/BG pairs for badges) */
+    --success: 142 76% 29%;          /* green-700 #15803D */
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 44%; /* amber-600 */
+    --success-subtle: 142 76% 94%;   /* green-100 #DCFCE7 */
+    --warning: 32 95% 44%;           /* amber-700 #B45309 */
     --warning-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%; /* red-600 */
+    --warning-subtle: 48 96% 89%;    /* amber-100 #FEF3C7 */
+    --destructive: 0 72% 51%;        /* red-700 #B91C1C */
     --destructive-foreground: 0 0% 100%;
-    --info: 217 91% 60%; /* blue-500 */
+    --destructive-subtle: 0 86% 97%; /* red-100 #FEE2E2 */
+    --info: 199 89% 41%;             /* sky-700 #0369A1 */
     --info-foreground: 0 0% 100%;
-    --border: 214 20% 90%;
-    --input: 214 20% 88%;
-    --ring: 243 75% 59%;
-    --radius: 0.6rem;
+    --info-subtle: 204 94% 94%;      /* sky-100 #E0F2FE */
+
+    /* Domain entity accents (icons/identity, not status) */
+    --entity-lead: 258 90% 66%;      /* purple */
+    --entity-property: 199 89% 48%;  /* sky */
+    --entity-deal: 221 83% 53%;      /* brand blue */
+    --entity-lease: 160 84% 39%;     /* emerald */
+    --entity-finance: 38 92% 50%;    /* amber */
+
+    --radius: 0.5rem;
   }
 
   .dark {
     --background: 222 47% 8%;
-    --foreground: 210 20% 96%;
+    --foreground: 210 40% 96%;
     --card: 222 40% 11%;
-    --card-foreground: 210 20% 96%;
+    --card-foreground: 210 40% 96%;
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
-    --primary: 243 75% 66%;
-    --primary-foreground: 222 47% 11%;
-    --success: 160 70% 42%;
-    --success-foreground: 0 0% 100%;
-    --warning: 32 90% 52%;
-    --warning-foreground: 222 47% 11%;
-    --destructive: 0 72% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --info: 217 91% 66%;
-    --info-foreground: 222 47% 11%;
     --border: 217 33% 20%;
     --input: 217 33% 22%;
-    --ring: 243 75% 66%;
+    --ring: 221 83% 60%;
+
+    --primary: 221 83% 60%;
+    --primary-foreground: 222 47% 11%;
+    --primary-hover: 224 76% 55%;
+    --primary-subtle: 221 50% 18%;
+
+    --success: 142 70% 42%;
+    --success-foreground: 222 47% 11%;
+    --success-subtle: 142 40% 16%;
+    --warning: 38 90% 52%;
+    --warning-foreground: 222 47% 11%;
+    --warning-subtle: 38 40% 16%;
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 222 47% 11%;
+    --destructive-subtle: 0 40% 16%;
+    --info: 199 80% 55%;
+    --info-foreground: 222 47% 11%;
+    --info-subtle: 199 40% 16%;
   }
 
   * {
