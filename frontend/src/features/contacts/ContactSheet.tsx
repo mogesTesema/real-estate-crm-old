@@ -1,7 +1,11 @@
 import { Loader2, Trash2 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { CustomFieldsEditor } from "../../components/CustomFieldsEditor";
 import { Field } from "../../components/form/Field";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -17,6 +21,7 @@ import { apiError } from "../../lib/api";
 import { CONTACT_ROLES } from "../../lib/constants";
 import { cn } from "../../lib/cn";
 import { useAction, useCreate, useDelete, useUpdate } from "../../lib/hooks";
+import { contactSchema, type ContactValues } from "../../lib/schemas";
 import { type Contact } from "./ContactsPage";
 
 export function ContactSheet({
@@ -29,32 +34,47 @@ export function ContactSheet({
   onOpenChange: (o: boolean) => void;
 }) {
   const editing = !!contact;
-  const [form, setForm] = useState({
-    full_name: contact?.full_name ?? "",
-    company_name: contact?.company_name ?? "",
-    email: contact?.email ?? "",
-    phone: contact?.phone ?? "",
-    location_preference: contact?.location_preference ?? "",
-    is_vip: contact?.is_vip ?? false,
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<ContactValues>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      full_name: contact?.full_name ?? "",
+      company_name: contact?.company_name ?? "",
+      email: contact?.email ?? "",
+      phone: contact?.phone ?? "",
+      location_preference: contact?.location_preference ?? "",
+      is_vip: contact?.is_vip ?? false,
+    },
   });
   const [roles, setRoles] = useState<string[]>(contact?.roles ?? []);
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    (contact as Contact & { custom_fields?: Record<string, unknown> })?.custom_fields ?? {},
+  );
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const create = useCreate("contacts");
   const update = useUpdate("contacts");
   const del = useDelete("contacts");
   const addRole = useAction("contacts");
 
-  function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [k]: v }));
-  }
-
-  async function save() {
+  async function onSubmit(values: ContactValues) {
     try {
       if (editing) {
-        await update.mutateAsync({ id: contact!.id, ...form } as never);
+        await update.mutateAsync({
+          id: contact!.id,
+          ...values,
+          custom_fields: customFields,
+        } as never);
       } else {
-        const created = (await create.mutateAsync(form as never)) as { id: string };
-        // Attach selected roles to the new contact.
+        const created = (await create.mutateAsync({
+          ...values,
+          custom_fields: customFields,
+        } as never)) as { id: string };
         for (const role of roles) {
           await addRole.mutateAsync({ id: created.id, action: "roles", body: { role } });
         }
@@ -85,6 +105,7 @@ export function ContactSheet({
     try {
       await del.mutateAsync(contact!.id);
       toast.success("Contact deleted");
+      setConfirmDelete(false);
       onOpenChange(false);
     } catch (e) {
       toast.error(apiError(e));
@@ -97,88 +118,92 @@ export function ContactSheet({
         <SheetHeader>
           <SheetTitle>{editing ? "Edit contact" : "New contact"}</SheetTitle>
         </SheetHeader>
-        <SheetBody className="space-y-4">
-          <Field label="Full name" required>
-            <Input
-              value={form.full_name}
-              onChange={(e) => set("full_name", e.target.value)}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Email">
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-              />
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="space-y-4">
+            <Field label="Full name" required error={errors.full_name?.message}>
+              <Input {...register("full_name")} />
             </Field>
-            <Field label="Phone">
-              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-            </Field>
-          </div>
-          <Field label="Company">
-            <Input
-              value={form.company_name}
-              onChange={(e) => set("company_name", e.target.value)}
-            />
-          </Field>
-          <Field label="Preferred location">
-            <Input
-              value={form.location_preference}
-              onChange={(e) => set("location_preference", e.target.value)}
-            />
-          </Field>
-          <Field label="Roles">
-            <div className="flex flex-wrap gap-2">
-              {CONTACT_ROLES.map((r) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  onClick={() => toggleRole(r.value)}
-                  className={cn(
-                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                    roles.includes(r.value)
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:bg-muted",
-                  )}
-                >
-                  {r.label}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Email" error={errors.email?.message}>
+                <Input type="email" {...register("email")} />
+              </Field>
+              <Field label="Phone">
+                <Input {...register("phone")} />
+              </Field>
             </div>
-          </Field>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.is_vip}
-              onChange={(e) => set("is_vip", e.target.checked)}
-              className="size-4 accent-[hsl(var(--primary))]"
+            <Field label="Company">
+              <Input {...register("company_name")} />
+            </Field>
+            <Field label="Preferred location">
+              <Input {...register("location_preference")} />
+            </Field>
+            <Field label="Roles">
+              <div className="flex flex-wrap gap-2">
+                {CONTACT_ROLES.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => toggleRole(r.value)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      roles.includes(r.value)
+                        ? "border-primary bg-primary-subtle text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={watch("is_vip")}
+                onChange={(e) => setValue("is_vip", e.target.checked)}
+                className="size-4 accent-[hsl(var(--primary))]"
+              />
+              Mark as VIP
+            </label>
+            <CustomFieldsEditor
+              targetModel="contacts.Contact"
+              values={customFields}
+              onChange={setCustomFields}
             />
-            Mark as VIP
-          </label>
-        </SheetBody>
-        <SheetFooter>
-          {editing && (
-            <Button
-              variant="ghost"
-              className="mr-auto text-destructive"
-              onClick={remove}
-              disabled={del.isPending}
-            >
-              <Trash2 className="size-4" /> Delete
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={create.isPending || update.isPending}>
-            {(create.isPending || update.isPending) && (
-              <Loader2 className="size-4 animate-spin" />
+          </SheetBody>
+          <SheetFooter>
+            {editing && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mr-auto text-destructive"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="size-4" /> Delete
+              </Button>
             )}
-            Save
-          </Button>
-        </SheetFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending || update.isPending}>
+              {(create.isPending || update.isPending) && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              Save
+            </Button>
+          </SheetFooter>
+        </form>
       </SheetContent>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete contact?"
+        description="This soft-deletes the contact. Related deals stay linked for audit."
+        confirmLabel="Delete"
+        destructive
+        loading={del.isPending}
+        onConfirm={remove}
+      />
     </Sheet>
   );
 }
