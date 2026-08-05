@@ -1,12 +1,27 @@
-import { Bath, BedDouble, Building2, MapPin, Plus, Ruler } from "lucide-react";
-import { useMemo, useState } from "react";
+import { type ColumnDef } from "@tanstack/react-table";
+import {
+  Bath,
+  BedDouble,
+  Building2,
+  LayoutGrid,
+  MapPin,
+  Plus,
+  Ruler,
+  Table2,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
+import { DataTable } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
 import { StatusBadge } from "../../components/StatusBadge";
+import { SelectField } from "../../components/form/SelectField";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Skeleton } from "../../components/ui/skeleton";
+import { cn } from "../../lib/cn";
+import { LISTING_STATUSES, LISTING_TYPES, PROPERTY_CATEGORIES } from "../../lib/constants";
 import { money } from "../../lib/format";
 import { listingStatusTone } from "../../lib/status";
 import { useList } from "../../lib/hooks";
@@ -14,32 +29,68 @@ import { PropertySheet } from "./PropertySheet";
 
 export interface Property {
   id: string;
+  node_type: string;
+  parent: string | null;
   title: string;
   category: string;
+  description: string;
+  address_line: string;
   city: string;
   region: string;
+  latitude?: string | null;
+  longitude?: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
   area_built: string | null;
+  amenities?: string[];
+  owner: string | null;
   custom_fields: { image_url?: string };
+  created_at: string;
 }
-interface Listing {
+export interface Listing {
   id: string;
   property: string;
+  listing_type: string;
   price: string;
   currency: string;
   status: string;
+  listing_agent?: string | null;
+  co_listing_agent?: string | null;
+  mandate?: string;
 }
 
-const FALLBACK_IMG =
+export const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=60";
 
 export function PropertiesPage() {
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [listingType, setListingType] = useState("");
+  const [status, setStatus] = useState("");
+  const [view, setView] = useState<"grid" | "table">("grid");
   const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<Property | null>(null);
-  const props = useList<Property>("properties", { search: search || undefined });
-  const listings = useList<Listing>("listings", { page_size: 200 });
+
+  useEffect(() => {
+    if (params.get("new")) {
+      setCreating(true);
+      params.delete("new");
+      setParams(params, { replace: true });
+    }
+  }, [params, setParams]);
+
+  const props = useList<Property>("properties", {
+    search: search || undefined,
+    category: category || undefined,
+    node_type: "property",
+    page_size: 200,
+  });
+  const listings = useList<Listing>("listings", {
+    listing_type: listingType || undefined,
+    status: status || undefined,
+    page_size: 200,
+  });
 
   const byProperty = useMemo(() => {
     const map = new Map<string, Listing>();
@@ -49,7 +100,69 @@ export function PropertiesPage() {
     return map;
   }, [listings.data]);
 
-  const rows = props.data?.results ?? [];
+  const rows = useMemo(() => {
+    const all = props.data?.results ?? [];
+    if (!listingType && !status) return all;
+    return all.filter((p) => byProperty.has(p.id));
+  }, [props.data, listingType, status, byProperty]);
+
+  const columns = useMemo<ColumnDef<Property, unknown>[]>(
+    () => [
+      {
+        accessorKey: "title",
+        header: "Property",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <img
+              src={row.original.custom_fields?.image_url || FALLBACK_IMG}
+              alt=""
+              className="size-10 rounded-md object-cover"
+              loading="lazy"
+            />
+            <div>
+              <p className="font-medium">{row.original.title}</p>
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="size-3" /> {row.original.city || "—"}
+              </p>
+            </div>
+          </div>
+        ),
+      },
+      { accessorKey: "category", header: "Category" },
+      {
+        accessorKey: "bedrooms",
+        header: "Beds",
+        cell: ({ getValue }) => String(getValue() ?? "—"),
+      },
+      {
+        id: "price",
+        header: "Price",
+        cell: ({ row }) => {
+          const l = byProperty.get(row.original.id);
+          return l ? (
+            <span className="font-semibold tabular">{money(l.price, l.currency)}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      },
+      {
+        id: "status",
+        header: "Listing",
+        cell: ({ row }) => {
+          const l = byProperty.get(row.original.id);
+          return l ? (
+            <StatusBadge value={l.status} tone={listingStatusTone[l.status] ?? "muted"} />
+          ) : (
+            <StatusBadge value="not listed" tone="muted" />
+          );
+        },
+      },
+    ],
+    [byProperty],
+  );
+
+  const viewState = { search, category, listingType, status, view };
 
   return (
     <div>
@@ -57,18 +170,78 @@ export function PropertiesPage() {
         title="Properties"
         description="Your listing inventory — for sale and for rent."
         actions={
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="size-4" /> Add property
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-md border border-input">
+              <button
+                onClick={() => setView("grid")}
+                className={cn(
+                  "flex h-9 items-center px-3 text-sm",
+                  view === "grid" ? "bg-muted font-medium" : "text-muted-foreground",
+                )}
+                aria-label="Grid view"
+              >
+                <LayoutGrid className="size-4" />
+              </button>
+              <button
+                onClick={() => setView("table")}
+                className={cn(
+                  "flex h-9 items-center border-l border-input px-3 text-sm",
+                  view === "table" ? "bg-muted font-medium" : "text-muted-foreground",
+                )}
+                aria-label="Table view"
+              >
+                <Table2 className="size-4" />
+              </button>
+            </div>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="size-4" /> Add property
+            </Button>
+          </div>
         }
       />
 
-      <div className="mb-4 max-w-xs">
-        <Input
-          placeholder="Search properties…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="w-full max-w-xs">
+          <Input
+            placeholder="Search properties…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <SelectField
+          value={category}
+          onChange={setCategory}
+          placeholder="Category"
+          options={PROPERTY_CATEGORIES}
+          className="w-36"
         />
+        <SelectField
+          value={listingType}
+          onChange={setListingType}
+          placeholder="Sale / Rent"
+          options={LISTING_TYPES}
+          className="w-32"
+        />
+        <SelectField
+          value={status}
+          onChange={setStatus}
+          placeholder="Listing status"
+          options={LISTING_STATUSES}
+          className="w-36"
+        />
+        {(category || listingType || status) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setCategory("");
+              setListingType("");
+              setStatus("");
+            }}
+          >
+            Clear
+          </Button>
+        )}
       </div>
 
       {props.isLoading ? (
@@ -80,13 +253,29 @@ export function PropertiesPage() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title="No properties yet"
-          description="Add your first listing to start marketing it."
+          title="No properties found"
+          description="Adjust filters or add a new listing to start marketing it."
           action={
             <Button onClick={() => setCreating(true)}>
               <Plus className="size-4" /> Add property
             </Button>
           }
+        />
+      ) : view === "table" ? (
+        <DataTable
+          data={rows}
+          columns={columns}
+          columnToggle
+          viewKey="properties"
+          viewState={viewState}
+          onApplyView={(s) => {
+            setSearch(String(s.search ?? ""));
+            setCategory(String(s.category ?? ""));
+            setListingType(String(s.listingType ?? ""));
+            setStatus(String(s.status ?? ""));
+            setView((s.view as "grid" | "table") ?? "table");
+          }}
+          onRowClick={(p) => navigate(`/properties/${p.id}`)}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -95,7 +284,7 @@ export function PropertiesPage() {
             return (
               <button
                 key={p.id}
-                onClick={() => setEditing(p)}
+                onClick={() => navigate(`/properties/${p.id}`)}
                 className="group overflow-hidden rounded-lg border border-border bg-card text-left shadow-card transition-shadow hover:shadow-lg"
               >
                 <div className="relative h-40 overflow-hidden bg-muted">
@@ -152,13 +341,6 @@ export function PropertiesPage() {
       )}
 
       {creating && <PropertySheet open={creating} onOpenChange={setCreating} />}
-      {editing && (
-        <PropertySheet
-          property={editing}
-          open={!!editing}
-          onOpenChange={(o) => !o && setEditing(null)}
-        />
-      )}
     </div>
   );
 }

@@ -1,25 +1,26 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 import { SelectField } from "../../components/form/SelectField";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Button } from "../../components/ui/button";
 import { apiError } from "../../lib/api";
 import { LISTING_STATUSES } from "../../lib/constants";
 import { useAction, useList } from "../../lib/hooks";
-import { listingStatusTone } from "../../lib/status";
+import { humanize, listingStatusTone } from "../../lib/status";
 
 interface Listing {
   id: string;
   status: string;
 }
 
-// Status transitions go through the backend state machine (illegal moves are rejected).
 export function ListingStatusControl({ propertyId }: { propertyId: string }) {
   const { data } = useList<Listing>("listings", { property: propertyId });
   const listing = data?.results?.[0];
   const transition = useAction("listings");
   const [next, setNext] = useState<string>();
+  const [confirm, setConfirm] = useState(false);
 
   if (!listing) {
     return (
@@ -39,6 +40,7 @@ export function ListingStatusControl({ propertyId }: { propertyId: string }) {
       });
       toast.success("Listing status updated");
       setNext(undefined);
+      setConfirm(false);
     } catch (e) {
       toast.error(apiError(e, "That status change isn't allowed"));
     }
@@ -62,12 +64,21 @@ export function ListingStatusControl({ propertyId }: { propertyId: string }) {
         />
         <Button
           variant="outline"
-          onClick={apply}
+          onClick={() => setConfirm(true)}
           disabled={!next || transition.isPending}
         >
           Update
         </Button>
       </div>
+      <ConfirmDialog
+        open={confirm}
+        onOpenChange={setConfirm}
+        title="Confirm status change"
+        description={`Move listing from ${humanize(listing.status)} to ${humanize(next ?? "")}? Illegal transitions are rejected by the state machine.`}
+        confirmLabel="Update status"
+        loading={transition.isPending}
+        onConfirm={apply}
+      />
     </div>
   );
 }

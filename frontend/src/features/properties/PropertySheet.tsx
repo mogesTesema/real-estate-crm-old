@@ -1,7 +1,11 @@
 import { Loader2, Trash2 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { CustomFieldsEditor } from "../../components/CustomFieldsEditor";
 import { Field } from "../../components/form/Field";
 import { SelectField } from "../../components/form/SelectField";
 import { Button } from "../../components/ui/button";
@@ -15,11 +19,31 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../../components/ui/sheet";
-import { apiError } from "../../lib/api";
+import { api, apiError } from "../../lib/api";
 import { LISTING_TYPES, PROPERTY_CATEGORIES } from "../../lib/constants";
-import { useCreate, useDelete, useUpdate } from "../../lib/hooks";
+import { useCreate, useDelete, useList, useUpdate } from "../../lib/hooks";
+import { propertySchema, type PropertyValues } from "../../lib/schemas";
+import { cn } from "../../lib/cn";
+import { humanize } from "../../lib/status";
 import { ListingStatusControl } from "./ListingStatusControl";
 import { type Property } from "./PropertiesPage";
+
+const NODE_TYPES = [
+  { value: "property", label: "Property / Unit" },
+  { value: "building", label: "Building / Phase" },
+  { value: "project", label: "Project / Development" },
+];
+
+const AMENITY_OPTIONS = [
+  "parking",
+  "pool",
+  "gym",
+  "elevator",
+  "balcony",
+  "garden",
+  "security",
+  "furnished",
+];
 
 export function PropertySheet({
   property,
@@ -31,56 +55,108 @@ export function PropertySheet({
   onOpenChange: (o: boolean) => void;
 }) {
   const editing = !!property;
-  const [form, setForm] = useState({
-    title: property?.title ?? "",
-    category: property?.category ?? "residential",
-    city: property?.city ?? "",
-    bedrooms: property?.bedrooms?.toString() ?? "",
-    bathrooms: property?.bathrooms?.toString() ?? "",
-    area_built: property?.area_built ?? "",
-    image_url: property?.custom_fields?.image_url ?? "",
-    description: "",
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<PropertyValues>({
+    resolver: zodResolver(propertySchema),
+    defaultValues: {
+      title: property?.title ?? "",
+      node_type: (property?.node_type as PropertyValues["node_type"]) ?? "property",
+      parent: property?.parent ?? "",
+      category: property?.category ?? "residential",
+      city: property?.city ?? "",
+      address_line: property?.address_line ?? "",
+      bedrooms: property?.bedrooms?.toString() ?? "",
+      bathrooms: property?.bathrooms?.toString() ?? "",
+      area_built: property?.area_built ?? "",
+      image_url: property?.custom_fields?.image_url ?? "",
+      description: property?.description ?? "",
+      listing_type: "sale",
+      price: "",
+    },
   });
-  const [listingType, setListingType] = useState("sale");
-  const [price, setPrice] = useState("");
+  const [customFields, setCustomFields] = useState<Record<string, unknown>>(
+    (property?.custom_fields as Record<string, unknown>) ?? {},
+  );
+  const [amenities, setAmenities] = useState<string[]>(property?.amenities ?? []);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [publishAfter, setPublishAfter] = useState(false);
 
   const create = useCreate("properties");
   const update = useUpdate("properties");
   const createListing = useCreate("listings");
   const del = useDelete("properties");
+  const parents = useList<Property>("properties", { page_size: 500 });
+  const listings = useList<{ id: string; status: string }>("listings", {
+    property: property?.id,
+    page_size: 5,
+  });
+  const nodeType = watch("node_type");
 
-  function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
-    setForm((f) => ({ ...f, [k]: v }));
-  }
+  const parentOptions = (parents.data?.results ?? [])
+    .filter((p) => p.id !== property?.id)
+    .filter((p) =>
+      nodeType === "property" ? p.node_type !== "property" : p.node_type === "project",
+    )
+    .map((p) => ({
+      value: p.id,
+      label: `${p.title} (${p.node_type.replace("_", " ")})`,
+    }));
 
-  function payload() {
-    return {
-      title: form.title,
-      category: form.category,
-      city: form.city,
-      bedrooms: form.bedrooms ? Number(form.bedrooms) : null,
-      bathrooms: form.bathrooms ? Number(form.bathrooms) : null,
-      area_built: form.area_built || null,
-      description: form.description,
-      custom_fields: { image_url: form.image_url },
+  async function onSubmit(values: PropertyValues) {
+    const payload = {
+      title: values.title,
+      node_type: values.node_type,
+      parent: values.parent || null,
+      category: values.category,
+      city: values.city,
+      address_line: values.address_line,
+      bedrooms: values.bedrooms ? Number(values.bedrooms) : null,
+      bathrooms: values.bathrooms ? Number(values.bathrooms) : null,
+      area_built: values.area_built || null,
+      description: values.description,
+      amenities,
+      custom_fields: { ...customFields, image_url: values.image_url },
     };
-  }
-
-  async function save() {
     try {
       if (editing) {
-        await update.mutateAsync({ id: property!.id, ...payload() } as never);
+        await update.mutateAsync({ id: property!.id, ...payload } as never);
+        const draftListing = (listings.data?.results ?? []).find((l) => l.status === "draft");
+        if (publishAfter && draftListing) {
+          await api.post(`/listings/${draftListing.id}/transition/`, {
+            to_status: "active",
+            reason: "Published from property editor",
+          });
+        }
       } else {
-        const p = (await create.mutateAsync(payload() as never)) as { id: string };
-        if (price) {
-          await createListing.mutateAsync({
+        const p = (await create.mutateAsync(payload as never)) as { id: string };
+        if (values.price && values.node_type === "property") {
+          const listing = (await createListing.mutateAsync({
             property: p.id,
-            listing_type: listingType,
-            price: Number(price),
-          } as never);
+            listing_type: values.listing_type ?? "sale",
+            price: Number(values.price),
+          } as never)) as { id: string };
+          if (publishAfter) {
+            await api.post(`/listings/${listing.id}/transition/`, {
+              to_status: "active",
+              reason: "Published on create",
+            });
+          }
         }
       }
-      toast.success(editing ? "Property updated" : "Property added");
+      toast.success(
+        editing
+          ? publishAfter
+            ? "Property saved & published"
+            : "Property updated"
+          : publishAfter
+            ? "Property added & published"
+            : "Property saved as draft",
+      );
       onOpenChange(false);
     } catch (e) {
       toast.error(apiError(e, "Could not save property"));
@@ -91,6 +167,7 @@ export function PropertySheet({
     try {
       await del.mutateAsync(property!.id);
       toast.success("Property deleted");
+      setConfirmDelete(false);
       onOpenChange(false);
     } catch (e) {
       toast.error(apiError(e));
@@ -103,111 +180,197 @@ export function PropertySheet({
         <SheetHeader>
           <SheetTitle>{editing ? "Edit property" : "Add property"}</SheetTitle>
         </SheetHeader>
-        <SheetBody className="space-y-4">
-          {form.image_url && (
-            <img
-              src={form.image_url}
-              alt=""
-              className="h-36 w-full rounded-md object-cover"
-            />
-          )}
-          <Field label="Title" required>
-            <Input value={form.title} onChange={(e) => set("title", e.target.value)} />
-          </Field>
-          <Field label="Image URL">
-            <Input
-              placeholder="https://…"
-              value={form.image_url}
-              onChange={(e) => set("image_url", e.target.value)}
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Category">
-              <SelectField
-                value={form.category}
-                onChange={(v) => set("category", v)}
-                options={PROPERTY_CATEGORIES}
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="space-y-4">
+            {watch("image_url") && (
+              <img
+                src={watch("image_url")}
+                alt=""
+                className="h-36 w-full rounded-md object-cover"
               />
-            </Field>
-            <Field label="City">
-              <Input value={form.city} onChange={(e) => set("city", e.target.value)} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Beds">
-              <Input
-                type="number"
-                value={form.bedrooms}
-                onChange={(e) => set("bedrooms", e.target.value)}
-              />
-            </Field>
-            <Field label="Baths">
-              <Input
-                type="number"
-                value={form.bathrooms}
-                onChange={(e) => set("bathrooms", e.target.value)}
-              />
-            </Field>
-            <Field label="Area">
-              <Input
-                value={form.area_built}
-                onChange={(e) => set("area_built", e.target.value)}
-              />
-            </Field>
-          </div>
-          {!editing && (
-            <div className="grid grid-cols-2 gap-3 rounded-md border border-border p-3">
-              <Field label="List as">
-                <SelectField
-                  value={listingType}
-                  onChange={setListingType}
-                  options={LISTING_TYPES}
-                />
-              </Field>
-              <Field label="Asking price">
-                <Input
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                />
-              </Field>
-            </div>
-          )}
-          <Field label="Description">
-            <Textarea
-              value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-            />
-          </Field>
-          {editing && (
-            <div className="rounded-md border border-border p-3">
-              <div className="mb-2 text-sm font-medium">Listing status</div>
-              <ListingStatusControl propertyId={property!.id} />
-            </div>
-          )}
-        </SheetBody>
-        <SheetFooter>
-          {editing && (
-            <Button
-              variant="ghost"
-              className="mr-auto text-destructive"
-              onClick={remove}
-              disabled={del.isPending}
-            >
-              <Trash2 className="size-4" /> Delete
-            </Button>
-          )}
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={create.isPending || update.isPending}>
-            {(create.isPending || update.isPending) && (
-              <Loader2 className="size-4 animate-spin" />
             )}
-            Save
-          </Button>
-        </SheetFooter>
+            <Field label="Title" required error={errors.title?.message}>
+              <Input {...register("title")} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Node type">
+                <Controller
+                  control={control}
+                  name="node_type"
+                  render={({ field }) => (
+                    <SelectField
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={NODE_TYPES}
+                    />
+                  )}
+                />
+              </Field>
+              {nodeType !== "project" && (
+                <Field label="Parent">
+                  <Controller
+                    control={control}
+                    name="parent"
+                    render={({ field }) => (
+                      <SelectField
+                        value={field.value || undefined}
+                        onChange={field.onChange}
+                        options={parentOptions}
+                        placeholder="None"
+                      />
+                    )}
+                  />
+                </Field>
+              )}
+            </div>
+            <Field label="Image URL" error={errors.image_url?.message}>
+              <Input placeholder="https://…" {...register("image_url")} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Category">
+                <Controller
+                  control={control}
+                  name="category"
+                  render={({ field }) => (
+                    <SelectField
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={PROPERTY_CATEGORIES}
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="City">
+                <Input {...register("city")} />
+              </Field>
+            </div>
+            <Field label="Address">
+              <Input {...register("address_line")} />
+            </Field>
+            {nodeType === "property" && (
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Beds">
+                  <Input type="number" {...register("bedrooms")} />
+                </Field>
+                <Field label="Baths">
+                  <Input type="number" {...register("bathrooms")} />
+                </Field>
+                <Field label="Area">
+                  <Input {...register("area_built")} />
+                </Field>
+              </div>
+            )}
+            {!editing && nodeType === "property" && (
+              <div className="grid grid-cols-2 gap-3 rounded-md border border-border p-3">
+                <Field label="List as">
+                  <Controller
+                    control={control}
+                    name="listing_type"
+                    render={({ field }) => (
+                      <SelectField
+                        value={field.value ?? "sale"}
+                        onChange={field.onChange}
+                        options={LISTING_TYPES}
+                      />
+                    )}
+                  />
+                </Field>
+                <Field label="Asking price">
+                  <Input type="number" {...register("price")} />
+                </Field>
+              </div>
+            )}
+            <Field label="Description">
+              <Textarea {...register("description")} />
+            </Field>
+            <Field label="Amenities">
+              <div className="flex flex-wrap gap-2">
+                {AMENITY_OPTIONS.map((a) => {
+                  const on = amenities.includes(a);
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() =>
+                        setAmenities((prev) =>
+                          on ? prev.filter((x) => x !== a) : [...prev, a],
+                        )
+                      }
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                        on
+                          ? "border-primary bg-primary-subtle text-primary"
+                          : "border-border text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      {humanize(a)}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={publishAfter}
+                onChange={(e) => setPublishAfter(e.target.checked)}
+                className="size-4 accent-[hsl(var(--primary))]"
+              />
+              Publish listing (draft → active)
+            </label>
+            <CustomFieldsEditor
+              targetModel="properties.Property"
+              values={customFields}
+              onChange={setCustomFields}
+            />
+            {editing && (
+              <div className="rounded-md border border-border p-3">
+                <div className="mb-2 text-sm font-medium">Listing status</div>
+                <ListingStatusControl propertyId={property!.id} />
+              </div>
+            )}
+          </SheetBody>
+          <SheetFooter>
+            {editing && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mr-auto text-destructive"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="size-4" /> Delete
+              </Button>
+            )}
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={create.isPending || update.isPending}
+              onClick={() => setPublishAfter(false)}
+            >
+              Save draft
+            </Button>
+            <Button type="submit" disabled={create.isPending || update.isPending}>
+              {(create.isPending || update.isPending) && (
+                <Loader2 className="size-4 animate-spin" />
+              )}
+              {publishAfter ? "Save & publish" : "Save"}
+            </Button>
+          </SheetFooter>
+        </form>
       </SheetContent>
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete property?"
+        description="This soft-deletes the property and its listings from active inventory."
+        confirmLabel="Delete"
+        destructive
+        loading={del.isPending}
+        onConfirm={remove}
+      />
     </Sheet>
   );
 }
