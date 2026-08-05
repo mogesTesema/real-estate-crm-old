@@ -1,5 +1,9 @@
-import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { Field } from "../../components/form/Field";
 import { SelectField } from "../../components/form/SelectField";
@@ -14,34 +18,32 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../../components/ui/sheet";
-import { apiError } from "../../lib/api";
+import { api, apiError } from "../../lib/api";
 import { LEAD_SOURCES, LEAD_TYPES, TIMELINES } from "../../lib/constants";
-import { useCreate } from "../../lib/hooks";
-import { toast } from "sonner";
+import { useCreate, useList } from "../../lib/hooks";
+import { captureLeadSchema, type CaptureLeadValues } from "../../lib/schemas";
 
-interface Form {
-  name: string;
-  email: string;
-  phone: string;
-  lead_type: string;
-  source: string;
-  budget_max: string;
-  preferred_location: string;
-  timeline: string;
-  notes: string;
+function useDuplicateWarning(email: string, phone: string) {
+  const [debounced, setDebounced] = useState({ email: "", phone: "" });
+  useEffect(() => {
+    const t = setTimeout(
+      () => setDebounced({ email: email.trim(), phone: phone.trim() }),
+      500,
+    );
+    return () => clearTimeout(t);
+  }, [email, phone]);
+
+  return useQuery({
+    queryKey: ["dup-preview", debounced.email, debounced.phone],
+    enabled: !!(debounced.email || debounced.phone),
+    queryFn: async () =>
+      (
+        await api.get<unknown[]>("/contacts/duplicates/", {
+          params: { email: debounced.email, phone: debounced.phone },
+        })
+      ).data,
+  });
 }
-
-const empty: Form = {
-  name: "",
-  email: "",
-  phone: "",
-  lead_type: "buy",
-  source: "website",
-  budget_max: "",
-  preferred_location: "",
-  timeline: "1_month",
-  notes: "",
-};
 
 export function CaptureLeadSheet({
   open,
@@ -52,21 +54,55 @@ export function CaptureLeadSheet({
   onOpenChange: (o: boolean) => void;
   onCaptured: () => void;
 }) {
-  const [form, setForm] = useState<Form>(empty);
   const create = useCreate("leads");
+  const {
+    register,
+    control,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = useForm<CaptureLeadValues>({
+    resolver: zodResolver(captureLeadSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      lead_type: "buy",
+      source: "website",
+      budget_max: "",
+      preferred_location: "",
+      timeline: "1_month",
+      notes: "",
+    },
+  });
 
-  function set<K extends keyof Form>(k: K, v: Form[K]) {
-    setForm((f) => ({ ...f, [k]: v }));
-  }
+  const email = watch("email") ?? "";
+  const phone = watch("phone") ?? "";
+  const dupes = useDuplicateWarning(email, phone);
 
-  async function submit() {
+  const catalog = useList<{ key: string; label: string; is_active: boolean }>(
+    "lead-sources",
+    { page_size: 200, is_active: true },
+  );
+
+  const sourceOptions = useMemo(() => {
+    const fromApi = (catalog.data?.results ?? []).map((s) => ({
+      value: s.key,
+      label: s.label,
+    }));
+    if (fromApi.length > 0) return fromApi;
+    return LEAD_SOURCES;
+  }, [catalog.data]);
+
+  async function onSubmit(values: CaptureLeadValues) {
     try {
       await create.mutateAsync({
-        ...form,
-        budget_max: form.budget_max ? Number(form.budget_max) : null,
+        ...values,
+        budget_max: values.budget_max ? Number(values.budget_max) : null,
       } as never);
       onCaptured();
-      setForm(empty);
+      reset();
       onOpenChange(false);
     } catch (e) {
       toast.error(apiError(e, "Could not capture lead"));
@@ -79,73 +115,94 @@ export function CaptureLeadSheet({
         <SheetHeader>
           <SheetTitle>Capture lead</SheetTitle>
         </SheetHeader>
-        <SheetBody className="space-y-4">
-          <Field label="Full name">
-            <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Email">
-              <Input
-                type="email"
-                value={form.email}
-                onChange={(e) => set("email", e.target.value)}
-              />
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <SheetBody className="space-y-4">
+            <Field label="Full name" error={errors.name?.message}>
+              <Input {...register("name")} />
             </Field>
-            <Field label="Phone">
-              <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Email" error={errors.email?.message}>
+                <Input type="email" {...register("email")} />
+              </Field>
+              <Field label="Phone" error={errors.phone?.message}>
+                <Input {...register("phone")} />
+              </Field>
+            </div>
+
+            {(dupes.data?.length ?? 0) > 0 && (
+              <div className="flex items-start gap-2 rounded-md bg-warning-subtle px-3 py-2 text-sm text-warning">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  {dupes.data!.length} existing contact
+                  {dupes.data!.length > 1 ? "s" : ""} match this email/phone. The lead will
+                  be flagged as a possible duplicate.
+                </span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Type" required error={errors.lead_type?.message}>
+                <Controller
+                  control={control}
+                  name="lead_type"
+                  render={({ field }) => (
+                    <SelectField
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={LEAD_TYPES}
+                    />
+                  )}
+                />
+              </Field>
+              <Field label="Source" error={errors.source?.message}>
+                <Controller
+                  control={control}
+                  name="source"
+                  render={({ field }) => (
+                    <SelectField
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={sourceOptions}
+                    />
+                  )}
+                />
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Budget (max)">
+                <Input type="number" {...register("budget_max")} />
+              </Field>
+              <Field label="Timeline">
+                <Controller
+                  control={control}
+                  name="timeline"
+                  render={({ field }) => (
+                    <SelectField
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={TIMELINES}
+                    />
+                  )}
+                />
+              </Field>
+            </div>
+            <Field label="Preferred location">
+              <Input {...register("preferred_location")} />
             </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Type" required>
-              <SelectField
-                value={form.lead_type}
-                onChange={(v) => set("lead_type", v)}
-                options={LEAD_TYPES}
-              />
+            <Field label="Notes">
+              <Textarea {...register("notes")} />
             </Field>
-            <Field label="Source">
-              <SelectField
-                value={form.source}
-                onChange={(v) => set("source", v)}
-                options={LEAD_SOURCES}
-              />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Budget (max)">
-              <Input
-                type="number"
-                value={form.budget_max}
-                onChange={(e) => set("budget_max", e.target.value)}
-              />
-            </Field>
-            <Field label="Timeline">
-              <SelectField
-                value={form.timeline}
-                onChange={(v) => set("timeline", v)}
-                options={TIMELINES}
-              />
-            </Field>
-          </div>
-          <Field label="Preferred location">
-            <Input
-              value={form.preferred_location}
-              onChange={(e) => set("preferred_location", e.target.value)}
-            />
-          </Field>
-          <Field label="Notes">
-            <Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} />
-          </Field>
-        </SheetBody>
-        <SheetFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={create.isPending}>
-            {create.isPending && <Loader2 className="size-4 animate-spin" />}
-            Capture
-          </Button>
-        </SheetFooter>
+          </SheetBody>
+          <SheetFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
+              {create.isPending && <Loader2 className="size-4 animate-spin" />}
+              Capture
+            </Button>
+          </SheetFooter>
+        </form>
       </SheetContent>
     </Sheet>
   );

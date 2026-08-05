@@ -1,7 +1,10 @@
-import { ArrowRight, PhoneCall } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Copy, PhoneCall } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { ActivityTimeline } from "../../components/ActivityTimeline";
+import { Avatar } from "../../components/ui/avatar";
 import { SelectField } from "../../components/form/SelectField";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Button } from "../../components/ui/button";
@@ -13,16 +16,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from "../../components/ui/sheet";
-import { apiError } from "../../lib/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
+import { api, apiError } from "../../lib/api";
 import { money } from "../../lib/format";
 import { useAction, useList } from "../../lib/hooks";
-import { leadStatusTone } from "../../lib/status";
+import { humanize, leadStatusTone } from "../../lib/status";
 import { type Lead } from "./LeadsPage";
 
 interface Pipeline {
   id: string;
   name: string;
+  is_default?: boolean;
   stages: { id: string; name: string; order: number }[];
+}
+interface DupContact {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -30,6 +41,49 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
     <div className="flex justify-between gap-4 py-1.5 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+/** Possible duplicate contacts for this lead (SRS §3.1.10). */
+function Duplicates({ lead }: { lead: Lead }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["contact-duplicates", lead.email, lead.phone, lead.name],
+    queryFn: async () =>
+      (
+        await api.get<DupContact[]>("/contacts/duplicates/", {
+          params: { email: lead.email, phone: lead.phone, name: lead.name },
+        })
+      ).data,
+  });
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Checking…</p>;
+  if (!data || data.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground">
+        No matching contacts found — this looks like a new person.
+      </p>
+    );
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground">
+        {data.length} existing contact{data.length > 1 ? "s" : ""} match this lead. Link
+        activity to the existing record instead of creating a duplicate.
+      </p>
+      {data.map((c) => (
+        <div
+          key={c.id}
+          className="flex items-center gap-3 rounded-md border border-border p-3"
+        >
+          <Avatar name={c.full_name || c.email} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{c.full_name || "—"}</p>
+            <p className="truncate text-xs text-muted-foreground">
+              {c.email} {c.phone && `· ${c.phone}`}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -45,12 +99,35 @@ export function LeadDetailSheet({
 }) {
   const respond = useAction("leads");
   const convert = useAction("leads");
+  const assign = useAction("leads");
   const pipelines = useList<Pipeline>("pipelines");
+  const agents = useList<{ id: string; full_name: string; email: string; role: string }>(
+    "users",
+    { page_size: 100 },
+  );
   const [pipelineId, setPipelineId] = useState<string>();
   const [stageId, setStageId] = useState<string>();
+  const [agentId, setAgentId] = useState<string>(lead.assigned_agent ?? "");
 
   const pipeline = pipelines.data?.results?.find((p) => p.id === pipelineId);
   const converted = !!lead.converted_opportunity;
+
+  useEffect(() => {
+    const list = pipelines.data?.results ?? [];
+    if (list.length === 0) return;
+    if (!pipelineId) {
+      const first = list.find((p) => p.is_default) ?? list[0];
+      setPipelineId(first.id);
+      const stages = [...(first.stages ?? [])].sort((a, b) => a.order - b.order);
+      if (stages[0]) setStageId(stages[0].id);
+      return;
+    }
+    if (!stageId) {
+      const p = list.find((x) => x.id === pipelineId);
+      const stages = [...(p?.stages ?? [])].sort((a, b) => a.order - b.order);
+      if (stages[0]) setStageId(stages[0].id);
+    }
+  }, [pipelines.data, pipelineId, stageId]);
 
   async function doRespond() {
     try {
@@ -79,63 +156,122 @@ export function LeadDetailSheet({
     }
   }
 
+  async function doAssign() {
+    if (!agentId) {
+      toast.error("Pick an agent");
+      return;
+    }
+    try {
+      await assign.mutateAsync({
+        id: lead.id,
+        action: "assign",
+        body: { assigned_agent: agentId },
+      });
+      toast.success("Lead assigned");
+    } catch (e) {
+      toast.error(apiError(e));
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+      <SheetContent className="max-w-lg">
         <SheetHeader>
           <SheetTitle>{lead.name || lead.email || "Lead"}</SheetTitle>
-        </SheetHeader>
-        <SheetBody className="space-y-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 pt-1">
             <StatusBadge value={lead.status} tone={leadStatusTone[lead.status] ?? "muted"} />
             {lead.sla_breached && <StatusBadge value="SLA breached" tone="destructive" />}
             {lead.is_possible_duplicate && (
               <StatusBadge value="possible duplicate" tone="warning" />
             )}
           </div>
+        </SheetHeader>
+        <SheetBody>
+          <Tabs defaultValue="overview">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+              <TabsTrigger value="duplicates">
+                <Copy className="mr-1 size-3.5" /> Duplicates
+              </TabsTrigger>
+            </TabsList>
 
-          <div className="rounded-lg border border-border p-3">
-            <Row label="Email" value={lead.email || "—"} />
-            <Row label="Phone" value={lead.phone || "—"} />
-            <Row label="Type" value={lead.lead_type.replace("_", " ")} />
-            <Row label="Source" value={lead.source} />
-            <Row label="Score" value={lead.score} />
-            <Row label="Location" value={lead.preferred_location || "—"} />
-            <Row label="Budget" value={lead.budget_max ? money(lead.budget_max) : "—"} />
-          </div>
+            <TabsContent value="overview" className="space-y-4">
+              <div className="rounded-lg border border-border p-3">
+                <Row label="Email" value={lead.email || "—"} />
+                <Row label="Phone" value={lead.phone || "—"} />
+                <Row label="Type" value={humanize(lead.lead_type)} />
+                <Row label="Source" value={humanize(lead.source)} />
+                <Row label="Score" value={lead.score} />
+                <Row label="Location" value={lead.preferred_location || "—"} />
+                <Row label="Budget" value={lead.budget_max ? money(lead.budget_max) : "—"} />
+              </div>
 
-          {!converted && (
-            <div className="space-y-3 rounded-lg border border-border p-3">
-              <div className="text-sm font-medium">Convert to opportunity</div>
-              <SelectField
-                value={pipelineId}
-                onChange={(v) => {
-                  setPipelineId(v);
-                  setStageId(undefined);
-                }}
-                placeholder="Pipeline"
-                options={(pipelines.data?.results ?? []).map((p) => ({
-                  value: p.id,
-                  label: p.name,
-                }))}
-              />
-              {pipeline && (
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <div className="text-sm font-medium">Assign agent</div>
                 <SelectField
-                  value={stageId}
-                  onChange={setStageId}
-                  placeholder="Starting stage"
-                  options={[...pipeline.stages]
-                    .sort((a, b) => a.order - b.order)
-                    .map((s) => ({ value: s.id, label: s.name }))}
+                  value={agentId || undefined}
+                  onChange={setAgentId}
+                  placeholder="Select agent"
+                  options={(agents.data?.results ?? [])
+                    .filter((u) => ["agent", "manager", "property_manager"].includes(u.role))
+                    .map((u) => ({
+                      value: u.id,
+                      label: u.full_name || u.email,
+                    }))}
                 />
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={doAssign}
+                  disabled={assign.isPending || !agentId}
+                >
+                  Save assignment
+                </Button>
+              </div>
+
+              {!converted && (
+                <div className="space-y-3 rounded-lg border border-border p-3">
+                  <div className="text-sm font-medium">Convert to opportunity</div>
+                  <SelectField
+                    value={pipelineId}
+                    onChange={(v) => {
+                      setPipelineId(v);
+                      setStageId(undefined);
+                    }}
+                    placeholder="Pipeline"
+                    options={(pipelines.data?.results ?? []).map((p) => ({
+                      value: p.id,
+                      label: p.name,
+                    }))}
+                  />
+                  {pipeline && (
+                    <SelectField
+                      value={stageId}
+                      onChange={setStageId}
+                      placeholder="Starting stage"
+                      options={[...pipeline.stages]
+                        .sort((a, b) => a.order - b.order)
+                        .map((s) => ({ value: s.id, label: s.name }))}
+                    />
+                  )}
+                </div>
               )}
-            </div>
-          )}
-          {converted && (
-            <p className="rounded-md bg-success/10 px-3 py-2 text-sm text-success">
-              Converted to an opportunity.
-            </p>
-          )}
+              {converted && (
+                <p className="rounded-md bg-success-subtle px-3 py-2 text-sm text-success">
+                  Converted to an opportunity.
+                </p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="timeline">
+              <ActivityTimeline objectId={lead.id} />
+            </TabsContent>
+
+            <TabsContent value="duplicates">
+              <Duplicates lead={lead} />
+            </TabsContent>
+          </Tabs>
         </SheetBody>
         <SheetFooter>
           <Button variant="outline" onClick={doRespond} disabled={respond.isPending}>
