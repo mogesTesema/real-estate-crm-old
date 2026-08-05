@@ -1,5 +1,6 @@
 import { Building2, Loader2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "../../components/ui/button";
 import { Field } from "../../components/form/Field";
@@ -9,6 +10,7 @@ import { useAuth } from "../../lib/auth";
 
 export function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("admin@demo.test");
   const [password, setPassword] = useState("demo12345");
   const [error, setError] = useState("");
@@ -19,7 +21,9 @@ export function LoginPage() {
     setError("");
     setBusy(true);
     try {
-      await login(email, password);
+      const { mfaRequired } = await login(email, password);
+      if (mfaRequired) navigate("/mfa", { replace: true });
+      else navigate("/", { replace: true });
     } catch (err) {
       setError(apiError(err, "Invalid email or password"));
     } finally {
@@ -29,7 +33,6 @@ export function LoginPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Brand panel */}
       <div className="relative hidden flex-col justify-between bg-primary p-10 text-primary-foreground lg:flex">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <div className="flex size-8 items-center justify-center rounded-md bg-white/15">
@@ -53,7 +56,6 @@ export function LoginPage() {
         </div>
       </div>
 
-      {/* Form panel */}
       <div className="flex items-center justify-center p-6">
         <form onSubmit={onSubmit} className="w-full max-w-sm space-y-5">
           <div className="lg:hidden">
@@ -76,6 +78,7 @@ export function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              aria-label="Email"
             />
           </Field>
           <Field label="Password">
@@ -84,6 +87,7 @@ export function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              aria-label="Password"
             />
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -91,8 +95,17 @@ export function LoginPage() {
             {busy && <Loader2 className="size-4 animate-spin" />}
             Sign in
           </Button>
+          <Button type="button" variant="outline" className="w-full" asChild>
+            <Link to="/sso/callback">Continue with SSO</Link>
+          </Button>
+          <div className="flex items-center justify-between text-xs">
+            <Link to="/forgot-password" className="text-primary hover:underline">
+              Forgot password?
+            </Link>
+            <span className="text-muted-foreground">Demo · admin@demo.test</span>
+          </div>
           <p className="rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
-            Demo · admin@demo.test / demo12345
+            Password: demo12345
           </p>
         </form>
       </div>
