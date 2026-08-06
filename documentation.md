@@ -2,6 +2,48 @@
 
 Quick daily notes on what got done and where things stand. See `frontend-implimentation-plan.md` for full frontend architecture and `implimentation-plan.md` for backend.
 
+**Current state (as of Thu, Aug 6, 2026):** Phase 1 MVP close-out is in the tree and verified (lint/build, Vitest, backend close-out tests). Sales roles (owner / manager / agent) can run the lead → contact → property → deal loop with role-aware nav and dashboards. PM / marketing / finance / portal / full super-admin surfaces remain stubbed for later phases. Demo logins: `admin@demo.test` (owner) and `agent1@demo.test` (agent), password `demo12345`.
+
+---
+
+## Day 6: Wed, Aug 6, 2026; Pipeline, dashboards, MapSearch, tests
+
+Landed the final Phase 1 close-out slice (pipeline through DoD).
+
+**What got done**
+- Pipeline: Kanban with days-in-stage, deal create/detail sheets (including tasks tab), weighted forecast + lost-reason views.
+- Role dashboards differentiated for SA / OW / MG / AG / PM / MK / FN / PU; settings profile/password/MFA; reports hub.
+- App routes wired for MFA, SSO callback, sales/leasing pipelines, settings deep links; MapSearch (Leaflet radius) + i18n shell skeleton; Phase 1 npm deps (leaflet, xlsx, vitest, playwright, i18next).
+- Tests: Vitest unit suite (`status`, `roles`, `format`, `csv`); Playwright smoke `e2e/lead-loop.spec.ts`; backend `tests/test_phase1_closeout.py`.
+- Docs: daily log + role definitions note; gitignore Playwright artifacts.
+
+**Verification**
+- `npm run lint`, `npm run build`, `npm test` green; backend close-out tests green when Postgres is up.
+
+---
+
+## Day 5: Tue, Aug 5, 2026; Auth pages + CRM modules + property APIs
+
+Built the main frontend modules and supporting property/deal API fields.
+
+**What got done**
+- Auth UI: login SSO button, forgot/reset calling real APIs, MFA page, role-specific onboarding, SSO callback stub; `auth` store with `mfaPending` / `refreshMe`.
+- Leads UI: inbox filters (including assignee), capture (RHF+Zod), detail (assign/convert/respond), analytics date range, routing + sources against APIs, merge dialog.
+- Contacts UI: list/export (CSV + Excel), 360 sheet, merge, CSV import with dedupe preview; docs tab empty-state for Phase 2.
+- Properties UI: grid/table, detail (media cover/reorder, owner/mandate, co-listing), projects tree, advanced search + match-to-lead, listing analytics, amenities + draft/publish on sheet.
+- Backend: property geo `lat/lng/radius_km` filter; `Listing.co_listing_agent`; opportunity `days_in_stage`; activity `related_model` for deal tasks.
+
+---
+
+## Day 4: Mon, Aug 4, 2026; foundation shell, auth/leads APIs
+
+Started the Phase 1 close-out with planning docs, design tokens, shell primitives, and thin backend APIs.
+
+**What got done**
+- Added `frontend-implimentation-plan.md` and `ui-ux-design-principle-coloring.md`.
+- Frontend foundation: blue-600 HSL tokens, status/roles/savedViews/schemas/csv helpers, role-aware AppShell, ScopeBadge, StatCard, DataTable, Cmd+K, global search, FAB, ConfirmDialog, ErrorBoundary/403/404, RequireRole, ActivityTimeline, CustomFieldsEditor, NotificationCenter.
+- Backend: forgot/reset password, MFA verify stub, `mfa_enabled` + `lead_routing_strategy` on `/me/`, `Notification` list/mark-read; `LeadSource` CRUD, lead assign action, routing strategy used in `capture_lead` / `route_lead`.
+
 ---
 
 ## Day 3 (evening): Mon, Aug 3, 2026; Phase 1 remaining ~20% close-out
