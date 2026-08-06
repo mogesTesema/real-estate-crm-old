@@ -1,6 +1,7 @@
 # --- Docs kept out of VCS per project preference ---
 full-featured-web-based-real-estate-crm-srs.md
-Real Estate CRM Implementation Two-Week Sprint.md
+Real-Estate-CRM-Implementation-Two-Week-Sprint.md
+Real-Estate-CRM-Role-Based-Dashboard Designs.md
 srs-summary.md
 implimentation-plan.md
 # --- Python / Django ---
@@ -29,3 +30,7 @@ frontend/.vite/
 .DS_Store
 .idea/
 .vscode/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
