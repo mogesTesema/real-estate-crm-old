@@ -4,8 +4,9 @@ type Theme = "light" | "dark";
 
 function initial(): Theme {
   const saved = localStorage.getItem("theme") as Theme | null;
-  if (saved) return saved;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  if (saved === "light" || saved === "dark") return saved;
+  // Light (white) mode is the product default; users can still toggle dark.
+  return "light";
 }
 
 function apply(theme: Theme) {
