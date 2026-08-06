@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
@@ -9,10 +9,13 @@ export default defineConfig({
       "/api": "http://localhost:8000",
     },
   },
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
+  },
   build: {
     rollupOptions: {
       output: {
-        // Split heavy vendors so the initial bundle stays lean.
         manualChunks: {
           react: ["react", "react-dom", "react-router-dom"],
           charts: ["recharts"],

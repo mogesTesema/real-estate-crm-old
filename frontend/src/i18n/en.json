@@ -1,0 +1,24 @@
+{
+  "nav": {
+    "Dashboard": "Dashboard",
+    "Leads": "Leads",
+    "Lead routing": "Lead routing",
+    "Lead sources": "Lead sources",
+    "Lead Analytics": "Lead Analytics",
+    "Contacts": "Contacts",
+    "Properties": "Properties",
+    "Property search": "Property search",
+    "Listing Analytics": "Listing Analytics",
+    "Projects": "Projects",
+    "Pipeline": "Pipeline",
+    "Forecast": "Forecast",
+    "Reports": "Reports",
+    "Settings": "Settings"
+  },
+  "sections": {
+    "Overview": "Overview",
+    "CRM": "CRM",
+    "Insights": "Insights",
+    "System": "System"
+  }
+}
