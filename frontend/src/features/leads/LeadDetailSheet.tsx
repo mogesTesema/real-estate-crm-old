@@ -175,15 +175,51 @@ export function LeadDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="max-w-lg">
+      <SheetContent>
         <SheetHeader>
           <SheetTitle>{lead.name || lead.email || "Lead"}</SheetTitle>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <StatusBadge value={lead.status} tone={leadStatusTone[lead.status] ?? "muted"} />
-            {lead.sla_breached && <StatusBadge value="SLA breached" tone="destructive" />}
-            {lead.is_possible_duplicate && (
-              <StatusBadge value="possible duplicate" tone="warning" />
-            )}
+          {/* 3-second scan strip */}
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted/40 p-3 sm:grid-cols-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Status
+              </p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <StatusBadge value={lead.status} tone={leadStatusTone[lead.status] ?? "muted"} />
+                {lead.sla_breached && <StatusBadge value="SLA" tone="destructive" />}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Owner
+              </p>
+              <p className="mt-1 truncate text-sm font-medium">
+                {(agents.data?.results ?? []).find((u) => u.id === lead.assigned_agent)?.full_name ||
+                  "Unassigned"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Budget
+              </p>
+              <p className="mt-1 text-sm font-semibold tabular-nums">
+                {lead.budget_max ? money(lead.budget_max) : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Next action
+              </p>
+              <p className="mt-1 truncate text-sm font-medium">
+                {lead.sla_breached
+                  ? "Respond (SLA)"
+                  : lead.status === "new"
+                    ? "First contact"
+                    : lead.status === "qualified"
+                      ? "Convert to deal"
+                      : humanize(lead.status)}
+              </p>
+            </div>
           </div>
         </SheetHeader>
         <SheetBody>

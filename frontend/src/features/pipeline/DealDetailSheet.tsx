@@ -34,6 +34,7 @@ export interface Opp {
   probability: number;
   expected_close: string | null;
   lost_reason: string;
+  assigned_agent?: string | null;
   weighted_value?: number;
   days_in_stage?: number;
   stage_history?: {

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DataTable } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { RowActions } from "../../components/RowActions";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Button } from "../../components/ui/button";
 import { SelectField } from "../../components/form/SelectField";
@@ -14,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { LEAD_SOURCES, LEAD_TYPES } from "../../lib/constants";
 import { money } from "../../lib/format";
 import { useList } from "../../lib/hooks";
-import { leadStatusTone } from "../../lib/status";
+import { toneForStatus } from "../../lib/status";
 import { CaptureLeadSheet } from "./CaptureLeadSheet";
 import { LeadDetailSheet } from "./LeadDetailSheet";
 import { MergeLeadsDialog } from "./MergeLeadsDialog";
@@ -60,11 +61,17 @@ export function LeadsPage() {
   const [selected, setSelected] = useState<Lead | null>(null);
   const [merging, setMerging] = useState(false);
 
-  // Command palette quick-create (?new=1).
+  // Command palette / nav quick-create (?new=1) and filter deep-links.
   useEffect(() => {
     if (params.get("new")) {
       setCapture(true);
       params.delete("new");
+      setParams(params, { replace: true });
+    }
+    const filter = params.get("filter");
+    if (filter === "hot" || filter === "followups" || filter === "converted") {
+      setTab(filter);
+      params.delete("filter");
       setParams(params, { replace: true });
     }
   }, [params, setParams]);
@@ -133,7 +140,7 @@ export function LeadsPage() {
         header: "Status",
         cell: ({ getValue }) => {
           const v = String(getValue());
-          return <StatusBadge value={v} tone={leadStatusTone[v] ?? "muted"} />;
+          return <StatusBadge value={v} tone={toneForStatus(v, "lead")} />;
         },
       },
       {
@@ -145,6 +152,18 @@ export function LeadsPage() {
           ) : (
             <StatusBadge value="on track" tone="success" />
           ),
+      },
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <RowActions
+            contact={{ phone: row.original.phone, email: row.original.email }}
+            onEdit={() => setSelected(row.original)}
+          />
+        ),
       },
     ],
     [],
@@ -253,6 +272,7 @@ export function LeadsPage() {
         empty={
           <EmptyState
             icon={Users}
+            entity="lead"
             title="No leads match"
             description="Adjust filters or capture a new inquiry to build the pipeline."
             action={

@@ -252,7 +252,8 @@ export function PropertiesPage() {
         </div>
       ) : rows.length === 0 ? (
         <EmptyState
-          icon={Building2}
+            icon={Building2}
+            entity="property"
           title="No properties found"
           description="Adjust filters or add a new listing to start marketing it."
           action={

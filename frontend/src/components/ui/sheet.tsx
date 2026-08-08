@@ -18,7 +18,7 @@ export const SheetContent = forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-border bg-card shadow-xl animate-slide-in",
+        "fixed right-0 top-0 z-50 flex h-full w-full max-w-[450px] flex-col border-l border-border bg-card shadow-xl animate-slide-in",
         className,
       )}
       {...props}

@@ -22,7 +22,7 @@ import { apiError } from "../../lib/api";
 import { CONTACT_ROLES } from "../../lib/constants";
 import { cn } from "../../lib/cn";
 import { money } from "../../lib/format";
-import { useAction, useDelete, useList, useUpdate } from "../../lib/hooks";
+import { useAction, useDelete, useDetail, useList, useUpdate } from "../../lib/hooks";
 import { humanize, listingStatusTone, opportunityStatusTone, toneClass } from "../../lib/status";
 import { type Contact } from "./ContactsPage";
 
@@ -179,6 +179,20 @@ export function ContactDetailSheet({
   const update = useUpdate("contacts");
   const del = useDelete("contacts");
   const addRole = useAction("contacts");
+  const agent = useDetail<{ full_name: string; email: string }>(
+    "users",
+    contact.assigned_agent ?? undefined,
+  );
+  const activities = useList<{ id: string; body: string; due_at?: string | null; activity_type: string }>(
+    "activities",
+    { object_id: contact.id, page_size: 20 },
+  );
+  const nextAction =
+    (activities.data?.results ?? []).find((a) => a.due_at && !a.body?.includes("completed"))
+      ?.body ||
+    (activities.data?.results ?? [])[0]?.body ||
+    "—";
+  const ownerName = agent.data?.full_name || agent.data?.email;
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -219,7 +233,7 @@ export function ContactDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="max-w-lg">
+      <SheetContent>
         <SheetHeader>
           <div className="flex items-center gap-3 pr-6">
             <Avatar name={contact.full_name || contact.company_name} className="size-10" />
@@ -235,6 +249,55 @@ export function ContactDetailSheet({
                   </Badge>
                 ))}
               </div>
+            </div>
+          </div>
+          {/* 3-second scan strip (doc 1 §5): Status · Owner · Budget · Next Action */}
+          <div className="mt-3 grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted/40 p-3 sm:grid-cols-4">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Status
+              </p>
+              <div className="mt-1">
+                {contact.is_vip ? (
+                  <StatusBadge value="VIP" tone="warning" />
+                ) : roles[0] ? (
+                  <StatusBadge value={roles[0]} tone="primary" />
+                ) : (
+                  <StatusBadge value="Active" tone="success" />
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Owner
+              </p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Avatar
+                  name={ownerName || "Unassigned"}
+                  className="size-5 text-[9px]"
+                />
+                <span className="truncate text-sm font-medium">
+                  {ownerName || "Unassigned"}
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Budget
+              </p>
+              <p className="mt-1 text-sm font-semibold tabular-nums">
+                {contact.budget_max
+                  ? money(contact.budget_max)
+                  : contact.budget_min
+                    ? money(contact.budget_min)
+                    : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Next action
+              </p>
+              <p className="mt-1 truncate text-sm font-medium">{nextAction}</p>
             </div>
           </div>
         </SheetHeader>

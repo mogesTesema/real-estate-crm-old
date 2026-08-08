@@ -14,6 +14,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { PageHeader } from "../../components/PageHeader";
+import { Avatar } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
 import {
   Dialog,
@@ -27,7 +28,7 @@ import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/cn";
 import { api, apiError } from "../../lib/api";
 import { compactMoney } from "../../lib/format";
-import { useAction } from "../../lib/hooks";
+import { useAction, useList } from "../../lib/hooks";
 import { CreateDealSheet } from "./CreateDealSheet";
 import { DealDetailSheet, type Opp } from "./DealDetailSheet";
 
@@ -55,10 +56,14 @@ type ViewFilter = "open" | "won" | "lost";
 
 function Card({
   opp,
+  agentName,
+  contactName,
   selected,
   onSelect,
 }: {
   opp: Opp;
+  agentName?: string;
+  contactName?: string;
   selected?: boolean;
   onSelect: () => void;
 }) {
@@ -66,6 +71,8 @@ function Card({
     id: opp.id,
     data: { opp },
   });
+  const days = opp.days_in_stage ?? 0;
+  const stale = days > 14;
   return (
     <div
       ref={setNodeRef}
@@ -80,31 +87,46 @@ function Card({
       }}
       style={transform ? { transform: `translate(${transform.x}px, ${transform.y}px)` } : undefined}
       className={cn(
-        "rounded-md border bg-card p-3 shadow-kanban outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "min-h-[44px] rounded-md border bg-card p-3 shadow-card outline-none transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring",
         selected ? "border-primary ring-1 ring-primary" : "border-border",
-        isDragging && "opacity-50",
+        isDragging && "scale-105 rotate-2 border-primary opacity-90 shadow-xl",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="text-sm font-medium">{opp.title}</div>
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{opp.title}</div>
+          {contactName && (
+            <span className="mt-0.5 inline-block rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              {contactName}
+            </span>
+          )}
+        </div>
         <button
           {...listeners}
           {...attributes}
-          className="cursor-grab text-muted-foreground hover:text-foreground"
+          className="flex size-11 shrink-0 cursor-grab items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Drag deal"
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="size-4" />
         </button>
       </div>
-      <div className="mt-1 text-sm font-semibold tabular text-primary">
+      <div className="mt-2 text-sm font-bold tabular-nums text-primary">
         {compactMoney(opp.value, opp.currency)}
       </div>
-      {opp.days_in_stage != null && (
-        <div className="mt-1 text-xs text-muted-foreground">
-          {opp.days_in_stage}d in stage
-        </div>
-      )}
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <Avatar name={agentName || "?"} className="size-6 text-[10px]" />
+        <span
+          className={cn(
+            "rounded-full px-2 py-0.5 text-xs font-medium",
+            stale
+              ? "bg-destructive-subtle text-destructive"
+              : "bg-muted text-muted-foreground",
+          )}
+        >
+          {days}d in stage
+        </span>
+      </div>
     </div>
   );
 }
@@ -112,29 +134,38 @@ function Card({
 function ColumnBox({
   col,
   focusedId,
+  agentNames,
+  contactNames,
   onSelect,
   onOpen,
 }: {
   col: Column;
   focusedId?: string;
+  agentNames: Map<string, string>;
+  contactNames: Map<string, string>;
   onSelect: (o: Opp) => void;
   onOpen: (o: Opp) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.stage.id });
   const total = col.opportunities.reduce((s, o) => s + Number(o.value || 0), 0);
   return (
-    <div className="w-72 shrink-0">
-      <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-sm font-medium">{col.stage.name}</span>
-        <span className="text-xs text-muted-foreground tabular">
-          {col.opportunities.length} · {compactMoney(total)}
-        </span>
+    <div className="flex w-72 shrink-0 flex-col rounded-xl bg-muted/70 p-3">
+      <div className="sticky top-0 z-[1] mb-2 flex items-center justify-between gap-2 bg-muted/70 pb-1">
+        <span className="truncate text-sm font-medium">{col.stage.name}</span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {col.opportunities.length}
+          </span>
+          <span className="text-xs font-medium tabular-nums text-muted-foreground">
+            {compactMoney(total)}
+          </span>
+        </div>
       </div>
       <div
         ref={setNodeRef}
         className={cn(
-          "min-h-[120px] space-y-2 rounded-lg border p-2 transition-colors",
-          isOver ? "border-primary bg-primary-subtle" : "border-border bg-muted/40",
+          "min-h-[120px] flex-1 space-y-2 rounded-lg p-1 transition-colors",
+          isOver && "border-2 border-dashed border-primary bg-primary-subtle/50",
         )}
       >
         {col.opportunities.map((o) => (
@@ -145,6 +176,8 @@ function ColumnBox({
           >
             <Card
               opp={o}
+              agentName={o.assigned_agent ? agentNames.get(o.assigned_agent) : undefined}
+              contactName={o.contact ? contactNames.get(o.contact) : undefined}
               selected={focusedId === o.id}
               onSelect={() => onSelect(o)}
             />
@@ -180,6 +213,27 @@ export function PipelinePage({ businessLine }: { businessLine?: string } = {}) {
     queryKey: ["pipelines"],
     queryFn: async () => (await api.get("/pipelines/")).data.results as Pipeline[],
   });
+
+  const users = useList<{ id: string; full_name: string; email: string }>("users", {
+    page_size: 200,
+  });
+  const contacts = useList<{ id: string; full_name: string; email: string }>("contacts", {
+    page_size: 200,
+  });
+  const agentNames = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const u of users.data?.results ?? []) {
+      m.set(u.id, u.full_name || u.email);
+    }
+    return m;
+  }, [users.data]);
+  const contactNames = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of contacts.data?.results ?? []) {
+      m.set(c.id, c.full_name || c.email);
+    }
+    return m;
+  }, [contacts.data]);
 
   // Default to the tenant's default pipeline, else the first matching business line.
   const activePipeline = useMemo(() => {
@@ -333,7 +387,11 @@ export function PipelinePage({ businessLine }: { businessLine?: string } = {}) {
       {board.isLoading || pipelines.isLoading ? (
         <div className="flex gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-64 w-72 rounded-lg" />
+            <div key={i} className="w-72 shrink-0 space-y-2 rounded-xl bg-muted/70 p-3">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-24 w-full rounded-md" />
+              <Skeleton className="h-24 w-full rounded-md" />
+            </div>
           ))}
         </div>
       ) : columns.length === 0 ? (
@@ -350,6 +408,8 @@ export function PipelinePage({ businessLine }: { businessLine?: string } = {}) {
                 key={col.stage.id}
                 col={col}
                 focusedId={focused?.id}
+                agentNames={agentNames}
+                contactNames={contactNames}
                 onSelect={setFocused}
                 onOpen={setSelected}
               />

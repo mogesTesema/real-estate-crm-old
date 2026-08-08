@@ -352,8 +352,14 @@ function OwnerMandatePanel({
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-border bg-card p-4">
-      <h3 className="text-sm font-semibold">Owner &amp; mandate</h3>
+    <details className="rounded-lg border border-border bg-card open:shadow-card">
+      <summary className="cursor-pointer list-none px-4 py-3 text-sm font-semibold marker:content-none [&::-webkit-details-marker]:hidden">
+        Owner &amp; mandate
+        <span className="ml-2 text-xs font-normal text-muted-foreground">
+          (click to expand)
+        </span>
+      </summary>
+      <div className="space-y-3 border-t border-border p-4">
       <div className="space-y-2">
         <label className="text-xs text-muted-foreground">Property owner (contact)</label>
         <SelectField
@@ -389,7 +395,8 @@ function OwnerMandatePanel({
       <Button onClick={save} disabled={saving} size="sm">
         {saving && <Loader2 className="size-4 animate-spin" />} Save
       </Button>
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -439,7 +446,7 @@ export function PropertyDetailPage() {
     <div>
       <button
         onClick={() => navigate("/properties")}
-        className="mb-3 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="mb-3 flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ArrowLeft className="size-4" /> Properties
       </button>
@@ -471,6 +478,57 @@ export function PropertyDetailPage() {
               </p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* 3-second scan strip (doc 1 §5): Status · Owner · Price · Next Action */}
+      <div className="mb-4 grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-3 shadow-card sm:grid-cols-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Status
+          </p>
+          <div className="mt-1">
+            {listing ? (
+              <StatusBadge
+                value={listing.status}
+                tone={listingStatusTone[listing.status] ?? "muted"}
+              />
+            ) : (
+              <StatusBadge value="Unlisted" tone="muted" />
+            )}
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Owner
+          </p>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="truncate text-sm font-medium">
+              {owner.data?.full_name || owner.data?.email || "Unassigned"}
+            </span>
+          </div>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Price
+          </p>
+          <p className="mt-1 text-sm font-bold tabular-nums text-primary">
+            {listing ? money(listing.price, listing.currency) : "—"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Next action
+          </p>
+          <p className="mt-1 truncate text-sm font-medium">
+            {listing?.status === "active"
+              ? "Promote listing"
+              : listing?.status === "under_offer"
+                ? "Follow up on offer"
+                : listing
+                  ? humanize(listing.status)
+                  : "Create listing"}
+          </p>
         </div>
       </div>
 

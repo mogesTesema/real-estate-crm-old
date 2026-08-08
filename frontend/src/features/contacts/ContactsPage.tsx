@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { DataTable } from "../../components/DataTable";
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
+import { RowActions } from "../../components/RowActions";
 import { Avatar } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -31,6 +32,9 @@ export interface Contact {
   tags: string[];
   location_preference: string;
   source: string;
+  budget_min?: string | null;
+  budget_max?: string | null;
+  assigned_agent?: string | null;
 }
 
 export function ContactsPage() {
@@ -116,6 +120,18 @@ export function ContactsPage() {
           ),
       },
       { accessorKey: "location_preference", header: "Location" },
+      {
+        id: "actions",
+        header: "",
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <RowActions
+            contact={{ phone: row.original.phone, email: row.original.email }}
+            onEdit={() => setSelected(row.original)}
+          />
+        ),
+      },
     ],
     [],
   );
@@ -232,6 +248,7 @@ export function ContactsPage() {
         empty={
           <EmptyState
             icon={Contact2}
+            entity="lead"
             title="No contacts found"
             description="Add a contact, import a CSV, or capture a lead to build your database."
             action={

@@ -205,7 +205,7 @@ export function DataTable<T>({
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card shadow-card">
+      <div className="max-h-[min(70vh,720px)] overflow-auto rounded-lg border border-border bg-card shadow-card">
         <Table>
           <THead>
             {table.getHeaderGroups().map((hg) => (
