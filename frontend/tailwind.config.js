@@ -54,6 +54,15 @@ export default {
           lease: "hsl(var(--entity-lease))",
           finance: "hsl(var(--entity-finance))",
         },
+        // Listing-status extras (under offer / reserved)
+        "under-offer": {
+          DEFAULT: "hsl(var(--status-under-offer))",
+          subtle: "hsl(var(--status-under-offer-subtle))",
+        },
+        reserved: {
+          DEFAULT: "hsl(var(--status-reserved))",
+          subtle: "hsl(var(--status-reserved-subtle))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

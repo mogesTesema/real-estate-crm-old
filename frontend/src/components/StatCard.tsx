@@ -13,6 +13,8 @@ const tileClasses: Record<Tone, string> = {
   info: "bg-info-subtle text-info",
   primary: "bg-primary-subtle text-primary",
   muted: "bg-muted text-muted-foreground",
+  under_offer: "bg-under-offer-subtle text-under-offer",
+  reserved: "bg-reserved-subtle text-reserved",
 };
 
 /**

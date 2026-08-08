@@ -48,6 +48,12 @@
     --entity-lease: 160 84% 39%;     /* emerald */
     --entity-finance: 38 92% 50%;    /* amber */
 
+    /* Listing-status extras (doc §3 — under offer / reserved-sold) */
+    --status-under-offer: 17 88% 40%;       /* #C2410C */
+    --status-under-offer-subtle: 33 100% 92%; /* #FFEDD5 */
+    --status-reserved: 239 84% 51%;         /* #4338CA */
+    --status-reserved-subtle: 226 100% 94%; /* #E0E7FF */
+
     --radius: 0.5rem;
   }
 
@@ -79,6 +85,11 @@
     --info: 199 80% 55%;
     --info-foreground: 222 47% 11%;
     --info-subtle: 199 40% 16%;
+
+    --status-under-offer: 17 90% 55%;
+    --status-under-offer-subtle: 17 40% 16%;
+    --status-reserved: 239 70% 65%;
+    --status-reserved-subtle: 239 40% 18%;
   }
 
   * {

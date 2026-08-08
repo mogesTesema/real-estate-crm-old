@@ -9,7 +9,9 @@ export type Tone =
   | "destructive"
   | "info"
   | "primary"
-  | "muted";
+  | "muted"
+  | "under_offer"
+  | "reserved";
 
 const toneClasses: Record<Tone, string> = {
   success: "bg-success-subtle text-success ring-success/25",
@@ -18,6 +20,8 @@ const toneClasses: Record<Tone, string> = {
   info: "bg-info-subtle text-info ring-info/25",
   primary: "bg-primary-subtle text-primary ring-primary/25",
   muted: "bg-muted text-muted-foreground ring-border",
+  under_offer: "bg-under-offer-subtle text-under-offer ring-under-offer/25",
+  reserved: "bg-reserved-subtle text-reserved ring-reserved/25",
 };
 
 export function toneClass(tone: Tone) {
@@ -32,15 +36,17 @@ export const toneDot: Record<Tone, string> = {
   info: "bg-info",
   primary: "bg-primary",
   muted: "bg-muted-foreground/50",
+  under_offer: "bg-under-offer",
+  reserved: "bg-reserved",
 };
 
 // Listing status matrix (design doc §3 — Property Listings).
 export const listingStatusTone: Record<string, Tone> = {
   draft: "muted",
   active: "success",
-  under_offer: "warning",
-  reserved: "primary",
-  sold: "primary",
+  under_offer: "under_offer",
+  reserved: "reserved",
+  sold: "reserved",
   rented: "info",
   off_market: "muted",
   expired: "muted",
@@ -59,6 +65,22 @@ export const opportunityStatusTone: Record<string, Tone> = {
   won: "success",
   lost: "destructive",
 };
+
+/** Resolve a tone for any known status string; never leave callers unmapped. */
+export function toneForStatus(
+  value: string | undefined | null,
+  domain: "listing" | "lead" | "opportunity" = "lead",
+): Tone {
+  if (!value) return "muted";
+  const key = value.toLowerCase();
+  const map =
+    domain === "listing"
+      ? listingStatusTone
+      : domain === "opportunity"
+        ? opportunityStatusTone
+        : leadStatusTone;
+  return map[key] ?? "muted";
+}
 
 export function humanize(value: string) {
   return value
