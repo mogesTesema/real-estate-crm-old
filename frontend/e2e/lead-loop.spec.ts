@@ -12,7 +12,10 @@ test("agent lead to kanban loop", async ({ page }) => {
   await page.getByLabel("Password").fill("demo12345");
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/($|\?)/, { timeout: 25_000 });
-  await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
+  // Owner role-grouped nav labels Overview as "Agency Overview".
+  await expect(
+    page.getByRole("navigation", { name: "Main" }).getByRole("link").first(),
+  ).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/leads");
   await page.getByRole("button", { name: /Capture lead/i }).first().click();
@@ -65,4 +68,19 @@ test("agent lead to kanban loop", async ({ page }) => {
   await dialog.getByPlaceholder(/Reason/i).fill("E2E stage move");
   await dialog.getByRole("button", { name: /Move deal/i }).click();
   await expect(dialog).toBeHidden({ timeout: 15_000 });
+});
+
+test("owner sidebar shows locked phase stubs", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("admin@demo.test");
+  await page.getByLabel("Password").fill("demo12345");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/($|\?)/, { timeout: 25_000 });
+
+  const nav = page.getByRole("navigation", { name: "Main" });
+  await expect(nav.getByText("Team", { exact: true })).toBeVisible();
+  // Locked items render aria-disabled with a lock affordance.
+  await expect(nav.locator("[aria-disabled='true']").first()).toBeVisible();
+  await expect(nav.getByLabel(/Phase \d/i).first()).toBeVisible();
 });

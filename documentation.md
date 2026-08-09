@@ -2,7 +2,62 @@
 
 Quick daily notes on what got done and where things stand. See `frontend-implimentation-plan.md` for full frontend architecture and `implimentation-plan.md` for backend.
 
-**Current state (as of Thu, Aug 6, 2026):** Phase 1 MVP close-out is in the tree and verified (lint/build, Vitest, backend close-out tests). Sales roles (owner / manager / agent) can run the lead → contact → property → deal loop with role-aware nav and dashboards. PM / marketing / finance / portal / full super-admin surfaces remain stubbed for later phases. Demo logins: `admin@demo.test` (owner) and `agent1@demo.test` (agent), password `demo12345`.
+**Current state (as of Sun, Aug 9, 2026):** Phase 1 MVP close-out is complete, and the UI is aligned with the three design docs for Phase 1 surfaces: exact Kanban/table/status specs, per-role grouped sidebars (locked Phase-N stubs for unbuilt modules), richer role dashboards with honest StubPanels, and 3-second scan headers on contact/lead/property details. Phase 2+ business logic is not claimed. Demo logins: `admin@demo.test` (owner) and `agent1@demo.test` (agent), password `demo12345`.
+
+---
+
+## Day 8: Sun, Aug 9, 2026; Role navigation, dashboards, tests & docs
+
+Finished the design-doc alignment by shipping role-grouped navigation, dashboard close-out, and verification.
+
+**What got done**
+- Refactored `roles.ts` to per-role `ROLE_NAV` groups matching the dashboard design doc; unbuilt modules render as locked Phase-N stubs (no dead routes). Manager sidebar derived from the role-definitions activity list (doc 2 has no manager section).
+- AppShell renders group headers + lock affordance; CommandPalette flattens live items only.
+- Split dashboard widgets into `features/dashboard/widgets.tsx` (`StubPanel`, `GoalProgressCard`, `SalesPipelineCard`, `FollowUpsDue`); each role dashboard filled with live KPIs plus honest Phase 2–4 stub panels.
+- Expanded Vitest coverage for status tones and grouped nav; Playwright smoke updated for new nav labels + locked-item check.
+- Documented Day 7–8 work and a design-doc conformance register.
+
+**Verification**
+- `npm run lint`, `npm run build`, `npm test` (Vitest) green.
+
+### Design-doc conformance register
+
+**ui-ux-design-principle-coloring.md**
+- Palette / semantic / entity tokens — implemented (light + dark).
+- Under-offer / reserved listing tones — implemented.
+- Single `--muted-foreground` retained (doc also lists a separate secondary #475569) — documented deviation.
+- Kanban card/column/drag-drop — implemented.
+- Data tables sticky header / h-12 / row hover / 450px sheet — implemented.
+- Status chips via StatusBadge — implemented.
+- 3-second scan (Status / Owner / Budget|Price / Next Action) — implemented on contact, lead, property.
+- Omnichannel timeline borders — implemented.
+- Dimensional skeletons (Kanban/table/StatCard) — implemented for primary surfaces.
+- 44px touch targets + focus rings — implemented on shell, FAB, row actions, Kanban drag handle.
+- Bottom action sheet entries (call / upload) — implemented via MobileFab context items.
+
+**Real-Estate-CRM-Role-Based-Dashboard Designs.md**
+- Per-role sidebar groups — implemented with live routes where Phase 1 exists.
+- Unbuilt modules shown as locked Phase-N stubs — implemented (no dead routes).
+- Manager sidebar missing in doc 2 — derived from doc 3 activities (branch reports, routing, KPI, inventory) — documented derivation.
+- Dashboard widgets as named doc-2 group items — live KPIs + StubPanels for Phase 2+.
+- Doc 2 has no widget field-level specs — treated Dashboard group labels as the widget list.
+
+**Real Estate CRM Complete User Role Definitions.md**
+- Activity domains reflected in nav groups per role — implemented (stubs for later phases).
+- Activity Matrix primary work / key metrics — reflected on role dashboards (live where data exists).
+
+---
+
+## Day 7: Sat, Aug 8, 2026; Design tokens, Kanban, tables & 3-second scan
+
+Started aligning the Phase 1 UI with `ui-ux-design-principle-coloring.md` component and color specs.
+
+**What got done**
+- Design tokens: listing-status `--status-under-offer` / `--status-reserved` (+ dark remaps) in `index.css` + Tailwind; badge chip padding; `toneForStatus` helper; contacted→primary, qualified→warning.
+- Kanban exact spec: column `bg-muted/70`, sticky header + count + aggregate, card shadow/hover, drag rotate/scale, drop dashed primary, avatar + red days-in-stage >14.
+- DataTable: sticky uppercase header, h-12 rows, scroll container; new `RowActions` (Call/Email/WhatsApp/Edit) on Leads/Contacts; sheets default `max-w-[450px]`.
+- 3-second scan strips on Contact / Lead sheets and Property detail; Owner & mandate behind `<details>` accordion.
+- EmptyState entity accents; dimensional Kanban skeletons; Input h-10 + focus border-primary; 44px touch targets on buttons/FAB; MobileFab context actions (call / upload photo).
 
 ---
 
