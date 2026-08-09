@@ -12,310 +12,31 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
-import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import { PageHeader } from "../../components/PageHeader";
 import { StatCard } from "../../components/StatCard";
-import { Avatar } from "../../components/ui/avatar";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
 import { useAuth } from "../../lib/auth";
-import { compactMoney, money, relativeTime } from "../../lib/format";
+import { compactMoney, relativeTime } from "../../lib/format";
 import { useList } from "../../lib/hooks";
 import type { RoleKey } from "../../lib/roles";
-
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  source: string;
-  status: string;
-  score: number;
-  sla_breached: boolean;
-  assigned_agent: string | null;
-  first_response_at?: string | null;
-  created_at: string;
-}
-interface Opp {
-  id: string;
-  status: string;
-  stage: string;
-  value: string;
-  probability: number;
-  assigned_agent: string | null;
-}
-interface Stage {
-  id: string;
-  name: string;
-  order: number;
-}
-interface Pipeline {
-  id: string;
-  stages: Stage[];
-}
-interface Activity {
-  id: string;
-  activity_type: string;
-  body: string;
-  at: string;
-}
-interface PropertyRow {
-  id: string;
-  node_type: string;
-}
-interface ListingRow {
-  id: string;
-  status: string;
-  price: string;
-}
-interface UserRow {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-}
-
-function ChartCard({
-  title,
-  data,
-  loading,
-}: {
-  title: string;
-  data: { name: string; value: number }[];
-  loading?: boolean;
-}) {
-  return (
-    <Card className="lg:col-span-2">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <Skeleton className="h-64 w-full" />
-        ) : (
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ left: 8, right: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  tickFormatter={(v) => (v >= 1000 ? compactMoney(v) : String(v))}
-                  tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={56}
-                />
-                <Tooltip
-                  formatter={(v: number) => (v >= 1000 ? money(v) : v)}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} maxBarSize={56} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ActivityFeed({ mine }: { mine?: string }) {
-  const activities = useList<Activity>("activities", {
-    page_size: 8,
-    ...(mine ? { actor: mine } : {}),
-  });
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{mine ? "My recent activity" : "Recent activity"}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {activities.isLoading &&
-          Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
-        {(activities.data?.results ?? []).map((a) => (
-          <div key={a.id} className="flex gap-3">
-            <Avatar name={a.activity_type} className="bg-muted text-muted-foreground" />
-            <div className="min-w-0">
-              <p className="truncate text-sm">{a.body || a.activity_type}</p>
-              <p className="text-xs text-muted-foreground">{relativeTime(a.at)}</p>
-            </div>
-          </div>
-        ))}
-        {!activities.isLoading && (activities.data?.results?.length ?? 0) === 0 && (
-          <p className="text-sm text-muted-foreground">No activity yet.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function HotLeads({ agentId }: { agentId?: string }) {
-  const leads = useList<Lead>("leads", { page_size: 100 });
-  const hot = (leads.data?.results ?? [])
-    .filter((l) => !agentId || l.assigned_agent === agentId)
-    .filter((l) => l.sla_breached || l.score >= 70)
-    .filter((l) => l.status !== "converted" && l.status !== "lost")
-    .slice(0, 6);
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Target className="size-4 text-destructive" /> Needs attention
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {leads.isLoading &&
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
-        {hot.map((l) => (
-          <div key={l.id} className="flex items-center justify-between gap-2 text-sm">
-            <span className="truncate font-medium">{l.name || l.email}</span>
-            <span
-              className={
-                l.sla_breached ? "text-xs font-medium text-destructive" : "text-xs text-warning"
-              }
-            >
-              {l.sla_breached ? "SLA breached" : `Score ${l.score}`}
-            </span>
-          </div>
-        ))}
-        {!leads.isLoading && hot.length === 0 && (
-          <p className="text-sm text-muted-foreground">Nothing urgent right now.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function TeamLeaderboard({
-  opps,
-  users,
-  loading,
-}: {
-  opps: Opp[];
-  users: UserRow[];
-  loading?: boolean;
-}) {
-  const rows = useMemo(() => {
-    const byAgent = new Map<string, { value: number; deals: number }>();
-    for (const o of opps.filter((x) => x.status === "open" || x.status === "won")) {
-      if (!o.assigned_agent) continue;
-      const cur = byAgent.get(o.assigned_agent) ?? { value: 0, deals: 0 };
-      cur.value += Number(o.value || 0);
-      cur.deals += 1;
-      byAgent.set(o.assigned_agent, cur);
-    }
-    return [...byAgent.entries()]
-      .map(([id, stats]) => {
-        const u = users.find((x) => x.id === id);
-        return {
-          id,
-          name: u?.full_name || u?.email || "Agent",
-          ...stats,
-        };
-      })
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 6);
-  }, [opps, users]);
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Team leaderboard</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {loading && Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
-        {rows.map((r, i) => (
-          <div key={r.id} className="flex items-center justify-between gap-2 text-sm">
-            <span className="truncate">
-              <span className="mr-2 text-xs text-muted-foreground">{i + 1}.</span>
-              {r.name}
-            </span>
-            <span className="shrink-0 tabular text-muted-foreground">
-              {r.deals} · {compactMoney(r.value)}
-            </span>
-          </div>
-        ))}
-        {!loading && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground">No assigned deals yet.</p>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function useSalesData(meId: string, scope: "mine" | "team" | "all") {
-  const leads = useList<Lead>("leads", { page_size: 200 });
-  const opps = useList<Opp>("opportunities", { page_size: 200 });
-  const pipelines = useList<Pipeline>("pipelines");
-  const users = useList<UserRow>("users", { page_size: 100 });
-
-  const leadRows = (leads.data?.results ?? []).filter((l) => {
-    if (scope === "mine") return l.assigned_agent === meId;
-    return true;
-  });
-  const oppRows = (opps.data?.results ?? []).filter((o) => {
-    if (scope === "mine") return o.assigned_agent === meId;
-    return true;
-  });
-  const stages = pipelines.data?.results?.[0]?.stages ?? [];
-  const openDeals = oppRows.filter((o) => o.status === "open");
-  const won = oppRows.filter((o) => o.status === "won");
-  const pipelineValue = openDeals.reduce((s, o) => s + Number(o.value || 0), 0);
-  const gci = won.reduce((s, o) => s + Number(o.value || 0), 0);
-  const breaches = leadRows.filter((l) => l.sla_breached).length;
-  const converted = leadRows.filter((l) => l.status === "converted").length;
-  const conversion =
-    leadRows.length > 0 ? Math.round((converted / leadRows.length) * 100) : 0;
-  const weighted = openDeals.reduce(
-    (s, o) => s + Number(o.value || 0) * ((o.probability || 0) / 100),
-    0,
-  );
-  const chartData = [...stages]
-    .sort((a, b) => a.order - b.order)
-    .map((s) => ({
-      name: s.name,
-      value: oppRows
-        .filter((o) => o.stage === s.id && o.status === "open")
-        .reduce((sum, o) => sum + Number(o.value || 0), 0),
-    }));
-
-  return {
-    leads,
-    opps,
-    pipelines,
-    users,
-    leadRows,
-    oppRows,
-    openDeals,
-    pipelineValue,
-    gci,
-    breaches,
-    conversion,
-    weighted,
-    chartData,
-  };
-}
+import {
+  ActivityFeed,
+  FollowUpsDue,
+  GoalProgressCard,
+  HotLeads,
+  SalesPipelineCard,
+  StubPanel,
+  TeamLeaderboard,
+  useSalesData,
+  type Activity,
+  type Opp,
+  type UserRow,
+  type Lead,
+} from "./widgets";
 
 /** DASH-AG — my leads, open deals, activity, hot items. */
 function AgentDashboard({ meId }: { meId: string }) {
@@ -343,8 +64,6 @@ function AgentDashboard({ meId }: { meId: string }) {
             10,
         ) / 10;
   const won = d.oppRows.filter((o) => o.status === "won").length;
-  const goalTarget = 10;
-  const goalPct = Math.min(100, Math.round((won / goalTarget) * 100));
 
   return (
     <>
@@ -361,22 +80,10 @@ function AgentDashboard({ meId }: { meId: string }) {
         />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="My pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
+        <SalesPipelineCard title="My pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Goals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular">
-                {won} / {goalTarget} won
-              </p>
-              <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary" style={{ width: `${goalPct}%` }} />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">{goalPct}% of monthly win target</p>
-            </CardContent>
-          </Card>
+          <GoalProgressCard won={won} />
+          <FollowUpsDue agentId={meId} />
           <HotLeads agentId={meId} />
           <ActivityFeed mine={meId} />
         </div>
@@ -397,16 +104,17 @@ function ManagerDashboard({ meId }: { meId: string }) {
         <StatCard label="Follow-ups due" value={d.breaches} icon={AlertTriangle} tone={d.breaches > 0 ? "destructive" : "muted"} loading={d.leads.isLoading} />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Team pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
+        <SalesPipelineCard title="Team pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
         <TeamLeaderboard
           opps={d.oppRows}
           users={d.users.data?.results ?? []}
           loading={d.opps.isLoading || d.users.isLoading}
         />
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <HotLeads />
         <ActivityFeed />
+        <StubPanel title="Branch revenue & commissions" phase={2} />
       </div>
     </>
   );
@@ -424,26 +132,29 @@ function OwnerDashboard({ meId }: { meId: string }) {
         <StatCard label="SLA breaches" value={d.breaches} icon={AlertTriangle} tone={d.breaches > 0 ? "destructive" : "muted"} loading={d.leads.isLoading} />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Agency pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
+        <SalesPipelineCard title="Agency pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
         <TeamLeaderboard
           opps={d.oppRows}
           users={d.users.data?.results ?? []}
           loading={d.opps.isLoading || d.users.isLoading}
         />
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <HotLeads />
         <Card>
           <CardHeader>
-            <CardTitle>Weighted forecast</CardTitle>
+            <CardTitle>Revenue summary</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-semibold tabular">{compactMoney(d.weighted)}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Open deals × stage probability. Full forecast on Pipeline → Forecast.
+              Weighted forecast (open × probability). Full forecast on Pipeline → Forecast.
             </p>
           </CardContent>
         </Card>
+        <StubPanel title="Team & finance modules" phase={2}>
+          <p>Agent management, commission plans, and agency finance arrive in Phases 2–3.</p>
+        </StubPanel>
       </div>
     </>
   );
@@ -462,7 +173,7 @@ function SuperAdminDashboard({ meId }: { meId: string }) {
         <StatCard label="System" value="Healthy" icon={Server} tone="success" />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
+        <SalesPipelineCard title="Pipeline by stage" data={d.chartData} loading={d.pipelines.isLoading || d.opps.isLoading} />
         <Card>
           <CardHeader>
             <CardTitle>Quick actions</CardTitle>
@@ -479,19 +190,13 @@ function SuperAdminDashboard({ meId }: { meId: string }) {
             </Button>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Tenant usage</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>Multi-tenant health and usage metering expand in later phases.</p>
-            <p>
-              Live now: <b className="text-foreground">{d.leadRows.length}</b> leads,{" "}
-              <b className="text-foreground">{d.openDeals.length}</b> open deals,{" "}
-              <b className="text-foreground">{d.breaches}</b> SLA breaches.
-            </p>
-          </CardContent>
-        </Card>
+        <StubPanel title="System analytics" phase={2}>
+          <p>
+            Live now: <b className="text-foreground">{d.leadRows.length}</b> leads,{" "}
+            <b className="text-foreground">{d.openDeals.length}</b> open deals,{" "}
+            <b className="text-foreground">{d.breaches}</b> SLA breaches. Multi-tenant metering expands later.
+          </p>
+        </StubPanel>
       </div>
     </>
   );
@@ -508,19 +213,10 @@ function PortalDashboard() {
         <StatCard label="Viewings" value="—" icon={Home} tone="muted" />
         <StatCard label="Messages" value="—" icon={Users} tone="muted" />
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Portal workspace</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Public search, listing detail, and inquiry flows ship with the portal module
-            (Phase 4). Notifications and activity below use the shared timeline when available.
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent notifications</CardTitle>
+            <CardTitle>My activity</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {activities.isLoading &&
@@ -532,18 +228,29 @@ function PortalDashboard() {
               </div>
             ))}
             {!activities.isLoading && (activities.data?.results?.length ?? 0) === 0 && (
-              <p className="text-sm text-muted-foreground">No notifications yet.</p>
+              <p className="text-sm text-muted-foreground">No activity yet.</p>
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Portal notifications use the shared timeline when available. Full inbox ships in Phase 4.
+          </CardContent>
+        </Card>
+        <StubPanel title="Documents & schedule" phase={4} />
       </div>
     </>
   );
 }
 
 function PropertyManagerDashboard() {
-  const props = useList<PropertyRow>("properties", { page_size: 200 });
-  const listings = useList<ListingRow>("listings", { page_size: 200 });
+  const props = useList<{ id: string; node_type: string }>("properties", { page_size: 200 });
+  const listings = useList<{ id: string; status: string; price: string }>("listings", {
+    page_size: 200,
+  });
 
   const units = (props.data?.results ?? []).filter((p) => p.node_type === "property");
   const rows = listings.data?.results ?? [];
@@ -564,22 +271,15 @@ function PropertyManagerDashboard() {
   return (
     <>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Properties / units" value={units.length} icon={Building2} tone="info" loading={props.isLoading} />
+        <StatCard label="Properties managed" value={units.length} icon={Building2} tone="info" loading={props.isLoading} />
         <StatCard label="Active listings" value={active} icon={Home} tone="success" loading={listings.isLoading} />
-        <StatCard label="Occupancy signal" value={`${occupancy}%`} icon={KeyRound} tone="primary" loading={listings.isLoading} />
+        <StatCard label="Occupancy rate" value={`${occupancy}%`} icon={KeyRound} tone="primary" loading={listings.isLoading} />
         <StatCard label="Under offer" value={byStatus("under_offer")} icon={TrendingUp} tone="warning" loading={listings.isLoading} />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Listings by status" data={chartData} loading={listings.isLoading} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Leases & maintenance</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Expiring leases and open maintenance tickets arrive with Phase 2 / Phase 4.
-            Occupancy above is estimated from active vs rented listings.
-          </CardContent>
-        </Card>
+        <SalesPipelineCard title="Listings by status" data={chartData} loading={listings.isLoading} />
+        <StubPanel title="Leases & rent collection" phase={2} />
+        <StubPanel title="Maintenance" phase={2} />
       </div>
     </>
   );
@@ -597,22 +297,13 @@ function FinanceDashboard() {
     <>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Won deals" value={won.length} icon={CircleDollarSign} tone="success" loading={opps.isLoading} />
-        <StatCard label="Won value" value={compactMoney(wonValue)} icon={TrendingUp} tone="success" loading={opps.isLoading} />
+        <StatCard label="Revenue summary" value={compactMoney(wonValue)} icon={TrendingUp} tone="success" loading={opps.isLoading} />
         <StatCard label="Open pipeline" value={compactMoney(openValue)} icon={CircleDollarSign} tone="primary" loading={opps.isLoading} />
-        <StatCard label="Open deals" value={open.length} icon={Target} tone="info" loading={opps.isLoading} />
+        <StatCard label="Pending payments" value="—" icon={Target} tone="muted" />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Commissions & invoices</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Commission tracking, approval workflows, and VAT invoicing arrive with the
-              finance module (Phase 3). Won-deal values above are live from the pipeline.
-            </p>
-          </CardContent>
-        </Card>
+        <StubPanel title="Commissions" phase={3} />
+        <StubPanel title="Invoices" phase={3} />
         <ActivityFeed />
       </div>
     </>
@@ -653,8 +344,9 @@ function MarketingDashboard() {
         />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <ChartCard title="Leads by source" data={chartData} loading={leads.isLoading} />
-        <ActivityFeed />
+        <SalesPipelineCard title="Lead generation by source" data={chartData} loading={leads.isLoading} />
+        <StubPanel title="Campaign overview" phase={2} />
+        <StubPanel title="ROI analysis" phase={2} />
       </div>
     </>
   );

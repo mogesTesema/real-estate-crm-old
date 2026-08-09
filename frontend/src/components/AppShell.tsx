@@ -1,11 +1,4 @@
-import {
-  Building2,
-  LogOut,
-  Menu,
-  Moon,
-  Search,
-  Sun,
-} from "lucide-react";
+import { Lock, Menu, Moon, Search, Sun, Building2, LogOut } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
@@ -23,14 +16,12 @@ import { cn } from "../lib/cn";
 import { useAuth } from "../lib/auth";
 import { humanize } from "../lib/status";
 import { useTheme } from "../lib/theme";
-import { navForRole } from "../lib/roles";
+import { groupsForRole } from "../lib/roles";
 import { CommandPalette } from "./CommandPalette";
 import { GlobalSearch } from "./GlobalSearch";
 import { MobileFab } from "./MobileFab";
 import { NotificationCenter } from "./NotificationCenter";
 import { ScopeBadge } from "./ScopeBadge";
-
-const SECTION_ORDER = ["Overview", "CRM", "Insights", "System"] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -40,13 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [palette, setPalette] = useState(false);
   const [search, setSearch] = useState(false);
 
-  const groups = useMemo(() => {
-    const items = navForRole(me?.role);
-    return SECTION_ORDER.map((section) => ({
-      section,
-      items: items.filter((n) => n.section === section),
-    })).filter((g) => g.items.length > 0);
-  }, [me?.role]);
+  const groups = useMemo(() => groupsForRole(me?.role), [me?.role]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,32 +51,48 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto p-3" aria-label="Main">
           {groups.map((g) => (
-            <div key={g.section}>
-              {g.section !== "Overview" && (
-                <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t(`sections.${g.section}`, g.section)}
-                </p>
-              )}
+            <div key={g.label}>
+              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {t(`sections.${g.label}`, g.label)}
+              </p>
               <div className="space-y-0.5">
-                {g.items.map((n) => (
-                  <NavLink
-                    key={n.to}
-                    to={n.to}
-                    end={n.end ?? n.to === "/"}
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        isActive
-                          ? "bg-primary-subtle text-primary"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                      )
-                    }
-                  >
-                    <n.icon className="size-4" aria-hidden />
-                    {t(`nav.${n.label}`, n.label)}
-                  </NavLink>
-                ))}
+                {g.items.map((n) => {
+                  if (n.lockedPhase) {
+                    return (
+                      <div
+                        key={`${g.label}-${n.label}`}
+                        title={`Coming in Phase ${n.lockedPhase}`}
+                        aria-disabled="true"
+                        className="flex min-h-[44px] cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/60"
+                      >
+                        <n.icon className="size-4 shrink-0" aria-hidden />
+                        <span className="flex-1 truncate">{t(`nav.${n.label}`, n.label)}</span>
+                        <Lock className="size-3.5 shrink-0" aria-label={`Phase ${n.lockedPhase}`} />
+                      </div>
+                    );
+                  }
+                  const to = n.to!;
+                  const pathOnly = to.split("?")[0];
+                  return (
+                    <NavLink
+                      key={to + n.label}
+                      to={to}
+                      end={n.end ?? pathOnly === "/"}
+                      onClick={() => setOpen(false)}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex min-h-[44px] items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          isActive
+                            ? "bg-primary-subtle text-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )
+                      }
+                    >
+                      <n.icon className="size-4 shrink-0" aria-hidden />
+                      {t(`nav.${n.label}`, n.label)}
+                    </NavLink>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -121,7 +122,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <button
             onClick={() => setSearch(true)}
-            className="hidden h-8 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm text-muted-foreground transition-colors hover:bg-muted md:flex md:w-56 lg:w-64"
+            className="hidden h-11 items-center gap-2 rounded-md border border-input bg-card px-3 text-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex md:w-56 lg:w-64"
           >
             <Search className="size-3.5" />
             <span className="flex-1 text-left">Search records…</span>
@@ -153,7 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full p-0.5 focus:outline-none focus:ring-2 focus:ring-ring">
+                <button className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-0.5 focus:outline-none focus:ring-2 focus:ring-ring">
                   <Avatar name={me?.full_name || me?.email || "?"} />
                 </button>
               </DropdownMenuTrigger>

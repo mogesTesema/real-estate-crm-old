@@ -45,16 +45,19 @@ export function CommandPalette({
   }, [open]);
 
   const actions = useMemo<Action[]>(() => {
-    const visible = navForRole(me?.role).map((n) => n.to);
+    const flat = navForRole(me?.role);
+    const visible = flat.map((n) => n.to.split("?")[0]);
     const can = (prefix: string) =>
       visible.some((to) => to === prefix || to.startsWith(prefix + "/"));
 
-    const creates: Action[] = [
+    const createDefs = [
       { id: "new-lead", label: "New lead", prefix: "/leads", icon: Users },
       { id: "new-contact", label: "New contact", prefix: "/contacts", icon: Contact2 },
       { id: "new-property", label: "New property", prefix: "/properties", icon: Building2 },
       { id: "new-deal", label: "New deal", prefix: "/pipeline", icon: KanbanSquare },
-    ]
+    ];
+
+    const creates: Action[] = createDefs
       .filter((c) => can(c.prefix))
       .map((c) => ({
         id: c.id,
@@ -64,13 +67,20 @@ export function CommandPalette({
         run: () => navigate(`${c.prefix}?new=1`),
       }));
 
-    const nav: Action[] = navForRole(me?.role).map((n) => ({
-      id: `nav-${n.to}`,
-      label: n.label,
-      hint: "Go to",
-      icon: n.icon,
-      run: () => navigate(n.to),
-    }));
+    const seen = new Set<string>();
+    const nav: Action[] = [];
+    for (const n of flat) {
+      const key = n.to.split("?")[0] + n.label;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      nav.push({
+        id: `nav-${key}`,
+        label: n.label,
+        hint: "Go to",
+        icon: n.icon,
+        run: () => navigate(n.to),
+      });
+    }
     return [...creates, ...nav];
   }, [me?.role, navigate]);
 
@@ -105,7 +115,7 @@ export function CommandPalette({
                 a.run();
                 onOpenChange(false);
               }}
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted"
+              className="flex min-h-[44px] w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <a.icon className="size-4 text-muted-foreground" />
               <span className="flex-1">{a.label}</span>
