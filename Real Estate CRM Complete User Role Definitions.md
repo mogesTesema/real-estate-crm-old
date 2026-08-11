@@ -35,20 +35,19 @@
 
 # **1\. Super Admin**
 
-**Access Level:** Full system control
+**Access Level:** Full system control (within this one company)
 
-**Key Functions:** System configuration, user management across all tenants, security, billing, audit logs
+**Key Functions:** System configuration, company user management, security, integrations, audit logs
 
 ***Activities & Work***
 
 | Activity | Description |
 | :---- | :---- |
-| **Tenant Management** | Create, suspend, or delete company/tenant accounts |
-| **User Management** | Create/delete users across all tenants, assign roles |
-| **System Configuration** | Global settings, system-wide defaults, feature toggles |
+| **User Management** | Create/deactivate users in the company, assign roles |
+| **System Configuration** | Company settings, system-wide defaults, feature/module toggles |
 | **Security Management** | Configure MFA, password policies, IP whitelisting |
 | **Audit Log Review** | Monitor all system activities, user actions, security events |
-| **Subscription/Billing** | Manage plans, pricing, process payments, generate invoices |
+| **Company Profile** | Maintain company legal details, branding, localization defaults |
 | **Integration Management** | Configure API keys, webhooks, third-party connectors |
 | **Data Backup** | Configure and monitor automated backups, disaster recovery |
 | **Performance Monitoring** | View system health, usage analytics, server metrics |
@@ -57,22 +56,22 @@
 **2\. Branch/Team Manager**  
 **Access Level:** Branch-wide
 
-**Key Functions:** Manages Broker/Agency Owners, team performance, branch revenue, lead routing
+**Key Functions:** Manages agents and team performance, branch revenue, lead routing
 
 ***Activities & Work***
 
 | Activity | Description |
 | :---- | :---- |
-| **Broker Management** | Approve/register new Broker/Agency Owners under their branch |
-| **Team Oversight** | Monitor all Brokers and their Agents' performance |
+| **Agent Oversight** | Monitor agents in the branch/team and their performance |
+| **Team Oversight** | Monitor team pipeline, workload, and goals |
 | **Branch Reports** | View revenue, closed deals, commission summaries per branch |
 | **Lead Routing Rules** | Configure round-robin, territory, or workload-based lead distribution |
 | **KPI Monitoring** | Track conversion rates, response times, team goals |
-| **Commission Oversight** | Review and approve commission structures across Brokers |
+| **Commission Oversight** | Review pending commissions for the branch (approve where authorized) |
 | **Performance Reviews** | Generate team leaderboards, identify top performers |
-| **Conflict Resolution** | Resolve disputes between Brokers or Agents |
+| **Conflict Resolution** | Resolve disputes between agents |
 | **Branch Settings** | Configure localization, currency, tax rules per branch |
-| **Inventory Oversight** | Monitor all listings and projects across the branch |
+| **Inventory Oversight** | Monitor listings and projects across the branch |
 
  
 
@@ -238,8 +237,8 @@
 
 | User Role | Primary Work | Key Metrics |
 | :---- | :---- | :---- |
-| **Super Admin** | System configuration, tenant management, security | System uptime, user count, revenue |
-| **Branch Manager** | Manage Brokers, team oversight, branch performance | Branch revenue, broker performance |
+| **Super Admin** | System configuration, company users, security | System uptime, user count |
+| **Branch Manager** | Manage agents, team oversight, branch performance | Branch revenue, agent performance |
 | **Broker/Owner** | Manage Agents, agency revenue, commission | Agency GCI, agent performance |
 | **Sales Agent** | Lead capture, client communication, deal progression | Leads, conversions, closed deals |
 | **Property Manager** | Lease management, maintenance, rent collection | Occupancy rate, rent collection |
