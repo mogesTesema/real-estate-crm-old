@@ -1,4 +1,4 @@
-import { Lock, Menu, Moon, Search, Sun, Building2, LogOut } from "lucide-react";
+import { Menu, Moon, Search, Sun, Building2, LogOut } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
@@ -57,21 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </p>
               <div className="space-y-0.5">
                 {g.items.map((n) => {
-                  if (n.lockedPhase) {
-                    return (
-                      <div
-                        key={`${g.label}-${n.label}`}
-                        title={`Coming in Phase ${n.lockedPhase}`}
-                        aria-disabled="true"
-                        className="flex min-h-[44px] cursor-not-allowed items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/60"
-                      >
-                        <n.icon className="size-4 shrink-0" aria-hidden />
-                        <span className="flex-1 truncate">{t(`nav.${n.label}`, n.label)}</span>
-                        <Lock className="size-3.5 shrink-0" aria-label={`Phase ${n.lockedPhase}`} />
-                      </div>
-                    );
-                  }
-                  const to = n.to!;
+                  const to = n.to;
                   const pathOnly = to.split("?")[0];
                   return (
                     <NavLink
