@@ -2,7 +2,61 @@
 
 Quick daily notes on what got done and where things stand. See `frontend-implimentation-plan.md` for full frontend architecture and `implimentation-plan.md` for backend.
 
-**Current state (as of Sun, Aug 9, 2026):** Phase 1 MVP close-out is complete, and the UI is aligned with the three design docs for Phase 1 surfaces: exact Kanban/table/status specs, per-role grouped sidebars (locked Phase-N stubs for unbuilt modules), richer role dashboards with honest StubPanels, and 3-second scan headers on contact/lead/property details. Phase 2+ business logic is not claimed. Demo logins: `admin@demo.test` (owner) and `agent1@demo.test` (agent), password `demo12345`.
+**Current state (as of Mon, Aug 10, 2026):** Role-based frontend fulfillment is live for mentor demos. All 8 roles have verbatim sidebars (no locked stubs), role-specific dashboards, and navigable modules. Live API modules (leads/contacts/properties/pipeline) remain wired; leases/finance/marketing/portal/admin use an in-browser demo-data layer with per-resource isolation. Seed every role via `python manage.py seed_demo --reset` — password `demo12345` for all.
+
+**Demo logins**
+| Email | Role |
+| :--- | :--- |
+| `superadmin@demo.test` | Super Admin |
+| `owner@demo.test` / `admin@demo.test` | Broker / Owner |
+| `manager@demo.test` | Branch Manager |
+| `agent1@demo.test` | Sales Agent |
+| `pm@demo.test` | Property Manager |
+| `marketing@demo.test` | Marketing |
+| `finance@demo.test` | Finance |
+| `portal@demo.test` | Portal User |
+
+---
+
+## Role isolation model
+
+Frontend demo modules enforce a written **all / own** resource-access contract in `frontend/src/lib/demo/access.ts`. Every sensitive demo resource declares:
+
+- `roles` — who may read the resource at all (everyone else gets zero rows)
+- `ownerScoped` + `allScopeRoles` — whether remaining roles see every row or only rows tagged `ownerEmail === me.email`
+
+`useScopedDemoList` applies that rule for the signed-in user. `ResourceListPage` and role dashboards/modules must use it (not raw `useDemoList`) for any identity-sensitive list.
+
+**Domain split (do not merge):**
+- Finance AR ledger = `invoices` / `transactions` / `commissions`
+- Property Manager rent roll = `rentInvoices` / `payments` / `leases` / `workOrders`
+- Portal customer = `portalDeals` / `favorites` / `savedSearches` (+ own-tagged lease/calendar/docs)
+
+**Route guard:** `canAccess` in `frontend/src/lib/roles.ts` is an explicit most-specific-path table with **default deny**. Action buttons that mutate money or rental-tenant records wrap with `<Can roles={[...]}>` from `RequireRole.tsx`.
+
+**Out of scope for this pass:** backend API endpoint allowlists / object-level RBAC are role-scoped within the company but not yet action-hard; real finance/lease/maintenance models are still frontend-demo only.
+
+**Product scope:** single real estate company (not SaaS). **Tenant** = rental tenant only.
+
+---
+
+## Day 9: Mon, Aug 10, 2026; Role-based frontend fulfillment
+
+Unlocked every sidebar item from the role/dashboard design docs and made each role land on its own dashboard for the mentor showcase.
+
+**What got done**
+- Extended `seed_demo` with one user per missing role (super_admin, manager, property_manager, marketing, finance, portal) plus `owner@demo.test` alias.
+- Added `frontend/src/lib/demo/` fixtures + zustand store + `useDemoList` / `useScopedDemoList` hooks for modules without backend endpoints.
+- Rewrote `ROLE_NAV` — removed `lockedPhase`; every item is a live route. Rebuilt `ROUTE_ROLES` / `canAccess` as explicit default-deny paths.
+- Split Property Manager `rentInvoices` from Finance `invoices`; identity-tagged commissions/messages/calendar/portal rows.
+- Built `ResourceListPage` + `ModuleDashboard` scaffolds; shipped Calendar, Communications timeline (channel colors), Documents, Team, Leases, Tenants, Rent, Maintenance, Finance, Marketing, Portal, Super Admin, and Help pages.
+- Role dashboards rebuilt with doc-aligned widgets (Owner agency/revenue/team split, Super Admin quick actions, Finance pending payments, Marketing campaign budget, Portal notifications).
+- Wired `<Can>` around approve/void/export/renew/assign/budget/suspend actions.
+- Updated Vitest route-denial + demo-scope matrix; Playwright isolation checks (portal `/403`, agent commission self-only).
+
+**Verification**
+- Run `seed_demo --reset`, then log in as each role from the login quick-fill.
+- `npm test` (Vitest) for nav/canAccess/scope; Playwright role dashboard + isolation smokes when stack is up.
 
 ---
 
@@ -193,16 +247,14 @@ Built the backend from scratch and got the first working slice of the MVP runnin
 
 **What got done**
 - Set up the Django project with split settings (dev/prod/test), Docker Compose (Postgres, Redis, MinIO), Dockerfile, and CI pipeline.
-- Implemented tenant isolation using Postgres Row-Level Security — each tenant's data is locked down at the database level, not just in app code. The app connects as a non-superuser so RLS is actually enforced.
-- Built the user system with org hierarchy (Tenant → Company → Branch → User) and JWT auth.
-- Added role-based access control: agents see only their own stuff, managers see their branch, owners see everything in their tenant.
+- Built role-based access control and row-level scoping within the company (agents see their own records, managers see their branch, owners see company-wide).
+- Built the user system with org hierarchy (Company → Branch → Team → User) and JWT auth.
 - Built all the domain modules — contacts (with dedup and merge), properties (with listing status tracking), leads (capture → route → score → SLA alerts → convert), deals (pipeline stages with Kanban API), and an activity timeline.
 - Scaffolded the React frontend with login, dashboard, and pages for each module.
 - Wrote 21 backend tests covering RLS isolation, scoping, dedup, and state machines. All passing.
 
 **Key decisions**
-- RLS needs a non-superuser DB role — superusers silently skip all policies.
-- Background jobs (like SLA sweep) loop through tenants one by one since there's no HTTP request to pull a tenant from.
+- Access control is role- and ownership-based inside one company (not SaaS multi-company partitioning).
 - Deferred: Elasticsearch, public portal, Twilio/SendGrid, AI features.
 
 ---

@@ -19,12 +19,12 @@ Real estate CRMs fail when screens are cluttered with unorganized data.
 - **The "3-Second Scan" Rule:** An agent looking at a contact profile or property record must identify **Status**, **Owner**, **Budget/Price**, and **Next Action** within 3 seconds without scrolling.
 - **Progressive Disclosure:** Hide complex fields (legal tax splits, historical audit logs, deep custom fields) behind expandable accordions or slide-over drawers.
 
-### B. Contextual Scoping & Multi-Tenancy Indicators
+### B. Contextual Scoping & Branch Indicators
 
-In a multi-branch, role-based system, users must always know **where** they are and **what scope** they are viewing (SRS 3.15, 3.17.2).
+In a multi-branch, role-based **single-company** system, users must always know **where** they are and **what scope** they are viewing (SRS 3.15, 3.17.2).
 
 - **Global Header Badge:** Always display the active Branch/Company scope (e.g. `Branch: Dubai Downtown` or `Scope: My Leads Only`).
-- **Visual Isolation:** Use clean structural dividers rather than heavy saturated backgrounds to separate multi-tenant structures.
+- **Visual Isolation:** Use clean structural dividers rather than heavy saturated backgrounds to separate branch/team scopes.
 
 ### C. Mobile-First Field UX (For Field Agents)
 

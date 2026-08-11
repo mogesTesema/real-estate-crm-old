@@ -146,7 +146,7 @@ frontend/src/
 ### 3.3 Data & auth conventions
 
 - JWT access + refresh; `Authorization: Bearer` on all API calls.
-- Tenant isolation is enforced by the API; UI still shows **scope badge** and never trusts client-only filters for security.
+- Role-/ownership-based data isolation is enforced by the API; UI still shows **scope badge** and never trusts client-only filters for security.
 - Every list: `useQuery` with key `['resource', filters, page]`; mutations invalidate related keys.
 - Permission gating: `<Can permission="leads.create">` / route `RequireRole`; hide nav items the role cannot access.
 - Soft errors: toast + inline form errors; hard errors: error boundary + `/error`.
@@ -217,7 +217,7 @@ Single config file: `navByRole[role] → NavGroup[]`. Filter by feature flags + 
 
 | Role key | Label | Primary focus |
 | :--- | :--- | :--- |
-| `super_admin` | Super Admin | Tenants, security, billing |
+| `super_admin` | Super Admin | Users, security, company settings |
 | `owner` | Broker / Agency Owner | Agency KPIs, teams, finance |
 | `manager` | Branch / Team Manager | Team pipeline, performance |
 | `agent` | Sales / Leasing Agent | Own leads, deals, calendar |
@@ -233,10 +233,9 @@ Single config file: `navByRole[role] → NavGroup[]`. Filter by feature flags + 
 | Group | Items → Route | Phase |
 | :--- | :--- | :--- |
 | Dashboard | Overview `/`, System Analytics `/admin/analytics`, Quick Actions | 1 / 4 |
-| Administration | Users `/admin/users`, Roles `/admin/roles`, Tenants `/admin/tenants`, System Settings `/admin/settings`, Audit Log `/admin/audit`, Backup `/admin/backup` | 4 |
+| Administration | Users `/admin/users`, Roles `/admin/roles`, Company `/admin/company`, Branches `/admin/branches`, System Settings `/admin/settings`, Audit Log `/admin/audit`, Backup `/admin/backup` | 4 |
 | Reports | System `/reports/system`, Revenue `/reports/revenue`, Usage `/reports/usage` | 3–4 |
 | Integrations | Email `/admin/integrations/email`, SMS/WhatsApp `/admin/integrations/sms`, API Keys `/admin/api-keys`, Webhooks `/admin/webhooks` | 4 |
-| Subscriptions | Plans `/admin/billing/plans`, Invoices `/admin/billing/invoices`, Customers `/admin/billing/customers` | 4 |
 | Help | Docs / Support / Training (external or `/help`) | 1 |
 
 #### Broker / Agency Owner
@@ -254,7 +253,7 @@ Single config file: `navByRole[role] → NavGroup[]`. Filter by feature flags + 
 
 #### Branch / Team Manager
 
-Same as Owner but **scoped to branch/team**; hide agency-wide billing. Emphasize: team pipeline, agent performance, lead routing for branch.
+Same as Owner but **scoped to branch/team**; hide agency-wide finance controls. Emphasize: team pipeline, agent performance, lead routing for branch.
 
 #### Sales / Leasing Agent
 
@@ -356,7 +355,7 @@ Each role gets a dashboard at `/` (or role-specific default). Shared shell; **wi
 
 | Page ID | Role | Widgets / content | SRS |
 | :--- | :--- | :--- | :--- |
-| DASH-SA | Super Admin | System health, tenant count, usage, quick actions | 3.13 |
+| DASH-SA | Super Admin | System health, user count, usage, quick actions | 3.13 |
 | DASH-OW | Owner | GCI, pipeline value, conversion, team leaderboard, SLA breaches | 3.13.1 |
 | DASH-MG | Manager | Team pipeline, agent activity, open deals, follow-ups due | 3.13.1 |
 | DASH-AG | Agent | My leads, my open deals, today’s tasks, response time, goals | 3.13.1 |
@@ -576,7 +575,7 @@ Each role gets a dashboard at `/` (or role-specific default). Shared shell; **wi
 
 ### 11.2 Public property portal — Next.js (SRS 3.11.1)
 
-Separate deployable. Brandable / white-label.
+Separate deployable. Company-branded public site.
 
 | Page ID | Route | Purpose | Key UI |
 | :--- | :--- | :--- | :--- |
@@ -624,13 +623,13 @@ Separate deployable. Brandable / white-label.
 | :--- | :--- | :--- |
 | ADM-01 | `/admin/users` | All users |
 | ADM-02 | `/admin/roles` | Permission sets |
-| ADM-03 | `/admin/tenants` | Tenant admin (super) |
+| ADM-03 | `/admin/company` | Company profile (single-company) |
 | ADM-04 | `/admin/audit` | Audit log viewer |
 | ADM-05 | `/admin/backup` | Backup / restore status |
 | ADM-06 | `/admin/integrations/*` | Email, SMS, WhatsApp connectors |
 | ADM-07 | `/admin/api-keys` | API key management |
 | ADM-08 | `/admin/webhooks` | Webhook endpoints + delivery log |
-| ADM-09 | `/admin/billing/*` | Plans, invoices, customers |
+| ADM-09 | `/admin/branches` | Branches & teams |
 | ADM-10 | `/admin/analytics` | System analytics |
 | ADM-11 | Sandbox indicator | Env banner when non-prod | 3.19.4 |
 
@@ -645,7 +644,7 @@ Separate deployable. Brandable / white-label.
 
 1. Localization + branch switcher.  
 2. Public portal MVP (search + listing + inquiry).  
-3. Client portal tenant/landlord loops.  
+3. Client portal rental-tenant/landlord loops.  
 4. Maintenance work orders.  
 5. AI panels on existing pages.  
 6. Admin integrations + audit.  

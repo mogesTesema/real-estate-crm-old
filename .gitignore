@@ -4,6 +4,8 @@ Real-Estate-CRM-Implementation-Two-Week-Sprint.md
 Real-Estate-CRM-Role-Based-Dashboard Designs.md
 srs-summary.md
 implimentation-plan.md
+architecture-review.md
+architecture.md
 # --- Python / Django ---
 __pycache__/
 *.py[cod]
