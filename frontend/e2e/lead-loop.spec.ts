@@ -70,7 +70,7 @@ test("agent lead to kanban loop", async ({ page }) => {
   await expect(dialog).toBeHidden({ timeout: 15_000 });
 });
 
-test("owner sidebar shows locked phase stubs", async ({ page }) => {
+test("owner sidebar unlocks team and finance modules", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/login");
   await page.getByLabel("Email").fill("admin@demo.test");
@@ -80,7 +80,72 @@ test("owner sidebar shows locked phase stubs", async ({ page }) => {
 
   const nav = page.getByRole("navigation", { name: "Main" });
   await expect(nav.getByText("Team", { exact: true })).toBeVisible();
-  // Locked items render aria-disabled with a lock affordance.
-  await expect(nav.locator("[aria-disabled='true']").first()).toBeVisible();
-  await expect(nav.getByLabel(/Phase \d/i).first()).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Agents" })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Commissions" })).toBeVisible();
+  await expect(nav.locator("[aria-disabled='true']")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Agency Overview/i })).toBeVisible();
+});
+
+test("each demo role lands on its dashboard", async ({ page }) => {
+  test.setTimeout(180_000);
+  const cases = [
+    { email: "agent1@demo.test", heading: /My Performance/i },
+    { email: "manager@demo.test", heading: /Branch Overview/i },
+    { email: "pm@demo.test", heading: /Portfolio Overview/i },
+    { email: "finance@demo.test", heading: /Financial Overview/i },
+    { email: "marketing@demo.test", heading: /Campaign Overview/i },
+    { email: "portal@demo.test", heading: /My Activity/i },
+    { email: "superadmin@demo.test", heading: /System Overview/i },
+  ];
+
+  for (const c of cases) {
+    await page.goto("/login");
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.goto("/login");
+    await page.getByLabel("Email").fill(c.email);
+    await page.getByLabel("Password").fill("demo12345");
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/($|\?)/, { timeout: 25_000 });
+    await expect(page.getByRole("heading", { name: c.heading })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(
+      page.getByRole("navigation", { name: "Main" }).locator("[aria-disabled='true']"),
+    ).toHaveCount(0);
+  }
+});
+
+test("portal is denied staff maintenance and finance by URL", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("portal@demo.test");
+  await page.getByLabel("Password").fill("demo12345");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/($|\?)/, { timeout: 25_000 });
+
+  await page.goto("/maintenance");
+  await expect(page).toHaveURL(/\/403/, { timeout: 15_000 });
+
+  await page.goto("/finance/invoices");
+  await expect(page).toHaveURL(/\/403/, { timeout: 15_000 });
+});
+
+test("agent commission report only shows their own agent name", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("agent1@demo.test");
+  await page.getByLabel("Password").fill("demo12345");
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/($|\?)/, { timeout: 25_000 });
+
+  await page.goto("/reports/my-commission");
+  await expect(page.getByRole("heading", { name: /Commission Report/i })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("Sarah Khan").first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText("James Smith")).toHaveCount(0);
+  await expect(page.getByText("Omar Johnson")).toHaveCount(0);
 });
