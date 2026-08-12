@@ -7,12 +7,15 @@ import { Field } from "../../components/form/Field";
 import { Input } from "../../components/ui/input";
 import { apiError } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
+import { DEMO_LOGINS } from "../../lib/roles";
+
+const DEMO_PASSWORD = "demo12345";
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@demo.test");
-  const [password, setPassword] = useState("demo12345");
+  const [email, setEmail] = useState("agent1@demo.test");
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -29,6 +32,12 @@ export function LoginPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function fillDemo(demoEmail: string) {
+    setEmail(demoEmail);
+    setPassword(DEMO_PASSWORD);
+    setError("");
   }
 
   return (
@@ -69,7 +78,7 @@ export function LoginPage() {
           <div>
             <h2 className="text-2xl font-semibold">Welcome back</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Sign in to your workspace.
+              Sign in to your workspace. Each role opens its own dashboard.
             </p>
           </div>
           <Field label="Email">
@@ -91,22 +100,38 @@ export function LoginPage() {
             />
           </Field>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full" disabled={busy}>
+          <Button type="submit" className="w-full min-h-[44px]" disabled={busy}>
             {busy && <Loader2 className="size-4 animate-spin" />}
             Sign in
           </Button>
-          <Button type="button" variant="outline" className="w-full" asChild>
+          <Button type="button" variant="outline" className="w-full min-h-[44px]" asChild>
             <Link to="/sso/callback">Continue with SSO</Link>
           </Button>
+
+          <div className="rounded-lg border border-border bg-muted/40 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Mentor demo — password {DEMO_PASSWORD}
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {DEMO_LOGINS.map((d) => (
+                <button
+                  key={d.email}
+                  type="button"
+                  onClick={() => fillDemo(d.email)}
+                  className="min-h-[44px] rounded-md border border-border bg-card px-2 py-1.5 text-left text-xs hover:bg-primary-subtle hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="block font-medium">{d.label}</span>
+                  <span className="block truncate text-muted-foreground">{d.email}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center justify-between text-xs">
             <Link to="/forgot-password" className="text-primary hover:underline">
               Forgot password?
             </Link>
-            <span className="text-muted-foreground">Demo · admin@demo.test</span>
           </div>
-          <p className="rounded-md bg-muted px-3 py-2 text-center text-xs text-muted-foreground">
-            Password: demo12345
-          </p>
         </form>
       </div>
     </div>

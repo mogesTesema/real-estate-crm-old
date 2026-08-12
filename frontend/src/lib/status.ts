@@ -40,7 +40,6 @@ export const toneDot: Record<Tone, string> = {
   reserved: "bg-reserved",
 };
 
-// Listing status matrix (design doc §3 — Property Listings).
 export const listingStatusTone: Record<string, Tone> = {
   draft: "muted",
   active: "success",
@@ -66,20 +65,71 @@ export const opportunityStatusTone: Record<string, Tone> = {
   lost: "destructive",
 };
 
+export const leaseStatusTone: Record<string, Tone> = {
+  draft: "muted",
+  active: "success",
+  expiring: "warning",
+  renewed: "info",
+  terminated: "destructive",
+  pending_signature: "warning",
+  expired: "muted",
+};
+
+export const maintenanceStatusTone: Record<string, Tone> = {
+  new: "info",
+  assigned: "primary",
+  in_progress: "warning",
+  waiting_for_parts: "warning",
+  completed: "success",
+  cancelled: "muted",
+};
+
+export const financeStatusTone: Record<string, Tone> = {
+  draft: "muted",
+  issued: "info",
+  partially_paid: "warning",
+  paid: "success",
+  overdue: "destructive",
+  void: "muted",
+  posted: "success",
+  reversed: "muted",
+  refunded: "warning",
+  calculated: "info",
+  pending_approval: "warning",
+  approved: "primary",
+  rejected: "destructive",
+  pending: "warning",
+  completed: "success",
+  cancelled: "muted",
+};
+
+export const campaignStatusTone: Record<string, Tone> = {
+  draft: "muted",
+  active: "success",
+  paused: "warning",
+  completed: "info",
+};
+
+const DOMAIN_MAPS = {
+  listing: listingStatusTone,
+  lead: leadStatusTone,
+  opportunity: opportunityStatusTone,
+  lease: leaseStatusTone,
+  maintenance: maintenanceStatusTone,
+  finance: financeStatusTone,
+  campaign: campaignStatusTone,
+} as const;
+
+export type StatusDomain = keyof typeof DOMAIN_MAPS;
+
 /** Resolve a tone for any known status string; never leave callers unmapped. */
 export function toneForStatus(
   value: string | undefined | null,
-  domain: "listing" | "lead" | "opportunity" = "lead",
+  domain: StatusDomain = "lead",
 ): Tone {
   if (!value) return "muted";
   const key = value.toLowerCase();
-  const map =
-    domain === "listing"
-      ? listingStatusTone
-      : domain === "opportunity"
-        ? opportunityStatusTone
-        : leadStatusTone;
-  return map[key] ?? "muted";
+  return DOMAIN_MAPS[domain][key] ?? "muted";
 }
 
 export function humanize(value: string) {
