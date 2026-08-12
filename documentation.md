@@ -2,7 +2,7 @@
 
 Quick daily notes on what got done and where things stand. See `frontend-implimentation-plan.md` for full frontend architecture and `implimentation-plan.md` for backend.
 
-**Current state (as of Mon, Aug 10, 2026):** Role-based frontend fulfillment is live for mentor demos. All 8 roles have verbatim sidebars (no locked stubs), role-specific dashboards, and navigable modules. Live API modules (leads/contacts/properties/pipeline) remain wired; leases/finance/marketing/portal/admin use an in-browser demo-data layer with per-resource isolation. Seed every role via `python manage.py seed_demo --reset` — password `demo12345` for all.
+**Current state (as of Wed, Aug 12, 2026):** Role-based frontend fulfillment is live for demos and aligned with the latest architecture decisions. All 8 roles have live sidebars, role-specific dashboards, and navigable modules. Live API modules (leads/contacts/properties/pipeline) remain wired; leases/finance/marketing/portal/admin use an in-browser demo-data layer with per-resource isolation. Seed every role via `python manage.py seed_demo --reset` - password `demo12345` for all.
 
 **Demo logins**
 | Email | Role |
@@ -15,6 +15,50 @@ Quick daily notes on what got done and where things stand. See `frontend-implime
 | `marketing@demo.test` | Marketing |
 | `finance@demo.test` | Finance |
 | `portal@demo.test` | Portal User |
+
+---
+
+## Day 11: Wed, Aug 12, 2026; Dashboard hardening, routing polish, and test depth
+
+Closed today with production-facing frontend polish and confidence checks, then pushed as three dated commits.
+
+**What got done**
+- Expanded role-specific dashboard workspaces in `frontend/src/features/dashboard/DashboardPage.tsx` so each role sees focused actions and KPIs.
+- Wired role-aware app entry/routing and login touchpoints across `frontend/src/App.tsx`, `frontend/src/features/auth/LoginPage.tsx`, `frontend/src/lib/roles.ts`, and `frontend/src/lib/status.ts`.
+- Strengthened test coverage for lead loops and scoped behavior in `frontend/e2e/lead-loop.spec.ts` and `frontend/src/lib/__tests__/unit.test.ts`.
+- Published the Day 11 slice as 3 commits:
+  - `d861211` - role-aware routing + auth entry
+  - `8cece1a` - role-specific dashboard workspaces
+  - `74e5dab` - unit + e2e lead workflow coverage
+
+---
+
+## Day 10: Tue, Aug 11, 2026; Docs alignment, seed depth, demo data foundation, module pages
+
+Consolidated the big role-demo and architecture-aligned frontend foundation and pushed as five dated commits.
+
+**What got done**
+- Updated project docs to match delivered role-aware direction:
+  - `README.md`
+  - `documentation.md`
+  - `frontend-implimentation-plan.md`
+  - `ui-ux-design-principle-coloring.md`
+  - `Real Estate CRM Complete User Role Definitions.md`
+- Strengthened demo seeding for role walkthrough reliability in `backend/apps/core/management/commands/seed_demo.py`.
+- Added reusable frontend demo-data foundation in `frontend/src/lib/demo/` (`fixtures`, `store`, `hooks`, scoped access helpers, export index).
+- Added shared module surfaces and pages:
+  - `frontend/src/components/ModuleDashboard.tsx`
+  - `frontend/src/components/ResourceListPage.tsx`
+  - `frontend/src/features/modules/CalendarPage.tsx`
+  - `frontend/src/features/modules/CommsPage.tsx`
+  - `frontend/src/features/modules/ModulePages.tsx`
+  - plus shell support in `frontend/src/components/AppShell.tsx`
+- Published the Day 10 slice as 5 commits:
+  - `705bb05` - docs alignment
+  - `01a1b03` - role definitions refinement
+  - `0b8ccaa` - demo seed strengthening
+  - `f557289` - demo data access layer
+  - `891c4e1` - module workspace shells/resource pages
 
 ---
 
@@ -42,7 +86,7 @@ Frontend demo modules enforce a written **all / own** resource-access contract i
 
 ## Day 9: Mon, Aug 10, 2026; Role-based frontend fulfillment
 
-Unlocked every sidebar item from the role/dashboard design docs and made each role land on its own dashboard for the mentor showcase.
+Unlocked every sidebar item from the role/dashboard design docs and made each role land on its own dashboard for the frontend showcase.
 
 **What got done**
 - Extended `seed_demo` with one user per missing role (super_admin, manager, property_manager, marketing, finance, portal) plus `owner@demo.test` alias.

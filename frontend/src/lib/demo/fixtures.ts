@@ -1,4 +1,4 @@
-/** Frontend demo fixtures for modules without a backend — mentor showcase data. */
+/** Frontend demo fixtures for modules without a backend — showcase data. */
 
 export type DemoId = string;
 

@@ -33,7 +33,7 @@ import {
 
 /**
  * Role-aware navigation — grouped per Real-Estate-CRM-Role-Based-Dashboard Designs.md.
- * Every item is a live route (no locked stubs) for the mentor frontend showcase.
+ * Every item is a live route (no locked stubs) for the frontend showcase.
  */
 export type RoleKey =
   | "super_admin"
@@ -735,7 +735,7 @@ export function isAdminRole(role: string | undefined): boolean {
   return ADMIN_ROLES.includes((role ?? "agent") as RoleKey);
 }
 
-/** Demo logins for mentor showcase (password: demo12345). */
+/** Demo logins for the frontend showcase (password: demo12345). */
 export const DEMO_LOGINS: { email: string; role: RoleKey; label: string }[] = [
   { email: "superadmin@demo.test", role: "super_admin", label: "Super Admin" },
   { email: "owner@demo.test", role: "owner", label: "Broker / Owner" },

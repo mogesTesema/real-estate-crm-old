@@ -6,6 +6,7 @@ srs-summary.md
 implimentation-plan.md
 architecture-review.md
 architecture.md
+ui-ux-design-principle-coloring.md
 # --- Python / Django ---
 __pycache__/
 *.py[cod]

@@ -110,7 +110,7 @@ export function LoginPage() {
 
           <div className="rounded-lg border border-border bg-muted/40 p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Mentor demo — password {DEMO_PASSWORD}
+              Demo access — password {DEMO_PASSWORD}
             </p>
             <div className="grid grid-cols-2 gap-1.5">
               {DEMO_LOGINS.map((d) => (

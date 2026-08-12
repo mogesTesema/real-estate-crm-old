@@ -137,7 +137,7 @@ export function ResourceListPage({
                 </div>
               ))}
             <p className="pt-2 text-xs text-muted-foreground">
-              Demo data for mentor showcase — mutations stay in-browser.
+              Demo data for the frontend showcase — mutations stay in-browser.
             </p>
           </SheetBody>
         </SheetContent>
