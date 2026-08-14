@@ -1,4 +1,4 @@
-import { Building2, Clock, Home, Percent } from "lucide-react";
+import { Building2, Clock, Home, KeyRound, Percent } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -14,6 +14,8 @@ import { PageHeader } from "../../components/PageHeader";
 import { StatCard } from "../../components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Skeleton } from "../../components/ui/skeleton";
+import { useAuth } from "../../lib/auth";
+import { useScopedDemoList, type DemoLease } from "../../lib/demo";
 import { compactMoney } from "../../lib/format";
 import { useList } from "../../lib/hooks";
 import { humanize } from "../../lib/status";
@@ -37,8 +39,109 @@ const tooltipStyle = {
   fontSize: 12,
 };
 
-/** Inventory composition, value, and aging (SRS §3.3 analytics). */
+const OCCUPIED_LEASE = new Set(["active", "expiring", "renewed"]);
+
+/** Inventory composition, value, and aging (SRS §3.3 analytics). PM sees occupancy, not sales pipeline. */
 export function PropertyAnalyticsPage() {
+  const { me } = useAuth();
+  if (me?.role === "property_manager") return <PmPropertyStatus />;
+  return <ListingAnalytics />;
+}
+
+function PmPropertyStatus() {
+  const properties = useList<Property>("properties", { page_size: 500 });
+  const listings = useList<Listing>("listings", { listing_type: "rent", page_size: 500 });
+  const leases = useScopedDemoList<DemoLease>("leases", { page_size: 100 });
+
+  const units = (properties.data?.results ?? []).filter((p) => p.node_type === "property");
+  const rentListed = listings.data?.results ?? [];
+  const leaseRows = leases.data?.results ?? [];
+  const occupied = leaseRows.filter((l) => OCCUPIED_LEASE.has(l.status)).length;
+  const expiring = leaseRows.filter((l) => l.status === "expiring").length;
+  const managed = Math.max(units.length, occupied);
+  const vacant = Math.max(managed - occupied, 0);
+  const occupancy = managed ? Math.round((occupied / managed) * 100) : 0;
+  const chartData = [
+    { name: "Occupied", value: occupied, key: "rented" },
+    { name: "Vacant", value: vacant, key: "draft" },
+    { name: "Expiring", value: expiring, key: "under_offer" },
+  ];
+
+  return (
+    <div>
+      <PageHeader
+        title="Property status"
+        description="Occupied vs vacant rental units — not sales listing pipeline."
+      />
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Managed units" value={managed} icon={Building2} tone="info" loading={properties.isLoading} />
+        <StatCard label="Occupied" value={occupied} icon={Home} tone="success" loading={leases.isLoading} />
+        <StatCard label="Vacant" value={vacant} icon={KeyRound} tone={vacant ? "warning" : "muted"} />
+        <StatCard
+          label="Occupancy"
+          value={`${occupancy}%`}
+          icon={Percent}
+          tone="primary"
+          loading={leases.isLoading || properties.isLoading}
+        />
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio mix</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {leases.isLoading ? (
+              <Skeleton className="h-56 w-full" />
+            ) : (
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ left: 8, right: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={28}
+                    />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={40}>
+                      {chartData.map((d) => (
+                        <Cell key={d.name} fill={STATUS_COLORS[d.key] ?? "#2563EB"} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Rent listings</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p>
+              For-rent listings <b>{rentListed.length}</b>
+            </p>
+            <p className="text-muted-foreground">
+              Assignment (managed_by) is not on the API yet. Occupancy uses lease status, not sold or under-offer.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function ListingAnalytics() {
   const listings = useList<Listing & { created_at: string }>("listings", { page_size: 500 });
   const properties = useList<Property>("properties", { page_size: 500 });
 
@@ -57,7 +160,6 @@ export function PropertyAnalyticsPage() {
     .sort((a, b) => b[1] - a[1])
     .map(([name, value]) => ({ name: humanize(name), value, key: name }));
 
-  // Aging: average days a listing has been around (created_at → now), bucketed.
   const now = Date.now();
   const buckets = { "<30d": 0, "30-60d": 0, "60-90d": 0, "90d+": 0 };
   for (const l of rows) {

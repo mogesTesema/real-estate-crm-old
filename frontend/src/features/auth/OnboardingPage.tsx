@@ -30,8 +30,9 @@ function stepsForRole(role: string | undefined): Step[] {
   if (role === "property_manager") {
     return [
       ...base,
-      { id: "properties", label: "Browse property inventory", to: "/properties" },
-      { id: "projects", label: "Open projects hierarchy", to: "/projects" },
+      { id: "leases", label: "Review active leases", to: "/leases?status=active" },
+      { id: "rent", label: "Check rent collection and late payments", to: "/rent/late" },
+      { id: "maintenance", label: "Open the work-order queue", to: "/maintenance" },
     ];
   }
   if (role === "owner" || role === "manager" || role === "super_admin") {

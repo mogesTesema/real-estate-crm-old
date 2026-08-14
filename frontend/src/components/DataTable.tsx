@@ -32,6 +32,7 @@ interface DataTableProps<T> {
   search?: string;
   onSearch?: (v: string) => void;
   searchPlaceholder?: string;
+  autoFocusSearch?: boolean;
   onRowClick?: (row: T) => void;
   empty?: ReactNode;
   toolbar?: ReactNode;
@@ -53,6 +54,7 @@ export function DataTable<T>({
   search,
   onSearch,
   searchPlaceholder = "Search…",
+  autoFocusSearch,
   onRowClick,
   empty,
   toolbar,
@@ -124,6 +126,7 @@ export function DataTable<T>({
                 placeholder={searchPlaceholder}
                 value={search ?? ""}
                 onChange={(e) => onSearch(e.target.value)}
+                autoFocus={autoFocusSearch}
               />
             </div>
           ) : (

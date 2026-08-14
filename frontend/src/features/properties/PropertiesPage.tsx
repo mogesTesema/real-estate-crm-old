@@ -24,6 +24,7 @@ import { cn } from "../../lib/cn";
 import { LISTING_STATUSES, LISTING_TYPES, PROPERTY_CATEGORIES } from "../../lib/constants";
 import { money } from "../../lib/format";
 import { listingStatusTone } from "../../lib/status";
+import { useAuth } from "../../lib/auth";
 import { useList } from "../../lib/hooks";
 import { PropertySheet } from "./PropertySheet";
 
@@ -63,11 +64,15 @@ export const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=60";
 
 export function PropertiesPage() {
+  const { me } = useAuth();
+  const isAgent = me?.role === "agent";
+  const isPm = me?.role === "property_manager";
+  const meId = me?.id ?? "";
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [listingType, setListingType] = useState("");
+  const [listingType, setListingType] = useState(isPm ? "rent" : "");
   const [status, setStatus] = useState("");
   const [view, setView] = useState<"grid" | "table">("grid");
   const [creating, setCreating] = useState(false);
@@ -101,10 +106,24 @@ export function PropertiesPage() {
   }, [listings.data]);
 
   const rows = useMemo(() => {
-    const all = props.data?.results ?? [];
-    if (!listingType && !status) return all;
-    return all.filter((p) => byProperty.has(p.id));
-  }, [props.data, listingType, status, byProperty]);
+    let all = props.data?.results ?? [];
+    if (listingType || status) {
+      all = all.filter((p) => byProperty.has(p.id));
+    }
+    if (isAgent && meId) {
+      all = all.filter((p) => {
+        const l = byProperty.get(p.id);
+        return Boolean(l && (l.listing_agent === meId || l.co_listing_agent === meId));
+      });
+    }
+    if (isPm) {
+      all = all.filter((p) => {
+        const l = byProperty.get(p.id);
+        return Boolean(l && l.listing_type === "rent");
+      });
+    }
+    return all;
+  }, [props.data, listingType, status, byProperty, isAgent, isPm, meId]);
 
   const columns = useMemo<ColumnDef<Property, unknown>[]>(
     () => [
@@ -167,8 +186,12 @@ export function PropertiesPage() {
   return (
     <div>
       <PageHeader
-        title="Properties"
-        description="Your listing inventory — for sale and for rent."
+        title={isPm ? "Managed Properties" : "Properties"}
+        description={
+          isPm
+            ? "Rental units in the portfolio. Property Manager assignment (managed_by) is not on the API yet."
+            : "Your listing inventory — for sale and for rent."
+        }
         actions={
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border border-input">
@@ -193,9 +216,11 @@ export function PropertiesPage() {
                 <Table2 className="size-4" />
               </button>
             </div>
-            <Button onClick={() => setCreating(true)}>
-              <Plus className="size-4" /> Add property
-            </Button>
+            {!isPm && (
+              <Button onClick={() => setCreating(true)}>
+                <Plus className="size-4" /> Add property
+              </Button>
+            )}
           </div>
         }
       />
@@ -215,13 +240,15 @@ export function PropertiesPage() {
           options={PROPERTY_CATEGORIES}
           className="w-36"
         />
-        <SelectField
-          value={listingType}
-          onChange={setListingType}
-          placeholder="Sale / Rent"
-          options={LISTING_TYPES}
-          className="w-32"
-        />
+        {!isPm && (
+          <SelectField
+            value={listingType}
+            onChange={setListingType}
+            placeholder="Sale / Rent"
+            options={LISTING_TYPES}
+            className="w-32"
+          />
+        )}
         <SelectField
           value={status}
           onChange={setStatus}
@@ -229,13 +256,13 @@ export function PropertiesPage() {
           options={LISTING_STATUSES}
           className="w-36"
         />
-        {(category || listingType || status) && (
+        {(category || status || (isPm ? listingType !== "rent" : listingType)) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               setCategory("");
-              setListingType("");
+              setListingType(isPm ? "rent" : "");
               setStatus("");
             }}
           >

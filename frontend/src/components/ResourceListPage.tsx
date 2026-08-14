@@ -1,7 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table";
 import { FolderKanban, type LucideIcon } from "lucide-react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { DataTable } from "./DataTable";
 import { EmptyState } from "./EmptyState";
@@ -74,11 +75,20 @@ export function ResourceListPage({
   fixedFilter,
   toolbar,
 }: ResourceListPageProps) {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
 
   const status = params.get(statusParam) ?? undefined;
+  const focusSearch = params.get("focus") === "search";
+
+  useEffect(() => {
+    if (!params.get("new")) return;
+    toast.success(`Add ${title.toLowerCase()} (demo) — create persists in Round 2.`);
+    const next = new URLSearchParams(params);
+    next.delete("new");
+    setParams(next, { replace: true });
+  }, [params, setParams, title]);
   const filter = useMemo(
     () => ({
       ...fixedFilter,
@@ -112,6 +122,7 @@ export function ResourceListPage({
         search={q}
         onSearch={setQ}
         searchPlaceholder={`Search ${title.toLowerCase()}…`}
+        autoFocusSearch={focusSearch}
         columnToggle
         viewKey={`demo-${resource}`}
         onRowClick={(row) => setSelected(row)}
