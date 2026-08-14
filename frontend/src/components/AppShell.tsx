@@ -1,7 +1,5 @@
 import { Menu, Moon, Search, Sun, Building2, LogOut } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { NavLink } from "react-router-dom";
 
 import { Avatar } from "./ui/avatar";
 import { Button } from "./ui/button";
@@ -22,9 +20,9 @@ import { GlobalSearch } from "./GlobalSearch";
 import { MobileFab } from "./MobileFab";
 import { NotificationCenter } from "./NotificationCenter";
 import { ScopeBadge } from "./ScopeBadge";
+import { SidebarNav } from "./SidebarNav";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
   const { me, logout } = useAuth();
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
@@ -49,39 +47,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             Estate<span className="text-primary">CRM</span>
           </span>
         </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto p-3" aria-label="Main">
-          {groups.map((g) => (
-            <div key={g.label}>
-              <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                {t(`sections.${g.label}`, g.label)}
-              </p>
-              <div className="space-y-0.5">
-                {g.items.map((n) => {
-                  const to = n.to;
-                  const pathOnly = to.split("?")[0];
-                  return (
-                    <NavLink
-                      key={to + n.label}
-                      to={to}
-                      end={n.end ?? pathOnly === "/"}
-                      onClick={() => setOpen(false)}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex min-h-[44px] items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          isActive
-                            ? "bg-primary-subtle text-primary"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                        )
-                      }
-                    >
-                      <n.icon className="size-4 shrink-0" aria-hidden />
-                      {t(`nav.${n.label}`, n.label)}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <nav className="flex-1 overflow-y-auto p-3" aria-label="Main">
+          <SidebarNav
+            groups={groups}
+            collapsible={
+              me?.role === "super_admin" ||
+              me?.role === "manager" ||
+              me?.role === "owner" ||
+              me?.role === "agent" ||
+              me?.role === "property_manager"
+            }
+            onNavigate={() => setOpen(false)}
+          />
         </nav>
       </aside>
 
