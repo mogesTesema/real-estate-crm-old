@@ -136,11 +136,33 @@ export const RESOURCE_ACCESS: Partial<Record<DemoResource, ResourceAccessRule>> 
   commissionPlans: {
     roles: ["owner", "manager", "super_admin"],
   },
+  brokerOwners: {
+    roles: ["manager", "super_admin"],
+    allScopeRoles: ["manager", "super_admin"],
+  },
+  fieldSessions: {
+    roles: ["agent", "owner", "manager", "super_admin"],
+    ownerScoped: true,
+    allScopeRoles: ["owner", "manager", "super_admin"],
+  },
+  vipClients: {
+    roles: ["owner", "super_admin"],
+    allScopeRoles: ["owner", "super_admin"],
+  },
+  agentConflicts: {
+    roles: ["manager", "super_admin"],
+    allScopeRoles: ["manager", "super_admin"],
+  },
   auditEvents: { roles: ["super_admin"] },
   tenantsAccounts: { roles: ["super_admin"] },
   subscriptions: { roles: ["super_admin"] },
   apiKeys: { roles: ["super_admin"] },
   webhooks: { roles: ["super_admin"] },
+  companyProfile: { roles: ["super_admin"] },
+  orgUnits: { roles: ["super_admin"] },
+  supportTickets: { roles: ["super_admin"] },
+  backups: { roles: ["super_admin"] },
+  securitySettings: { roles: ["super_admin"] },
 };
 
 /** Pure filter used by useScopedDemoList and unit tests. */

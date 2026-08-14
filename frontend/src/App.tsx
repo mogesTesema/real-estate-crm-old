@@ -17,6 +17,11 @@ import { PropertiesPage } from "./features/properties/PropertiesPage";
 import { PipelinePage } from "./features/pipeline/PipelinePage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import * as Modules from "./features/modules/ModulePages";
+import * as Admin from "./features/admin/AdminPages";
+import * as Manager from "./features/manager/ManagerPages";
+import * as Owner from "./features/owner/OwnerPages";
+import * as Agent from "./features/agent/AgentPages";
+import * as PropertyManager from "./features/property-manager/PropertyManagerPages";
 import { CalendarPage } from "./features/modules/CalendarPage";
 import { CommsPage, CommsTemplatesPage } from "./features/modules/CommsPage";
 
@@ -128,6 +133,31 @@ function MP({ Comp }: { Comp: ComponentType }) {
   );
 }
 
+function ReportsByRole() {
+  const { me } = useAuth();
+  if (me?.role === "manager") return <Manager.ManagerReportsPage />;
+  if (me?.role === "owner") return <Owner.OwnerReportsPage />;
+  return <ReportsPage />;
+}
+
+function TeamAgentsByRole() {
+  const { me } = useAuth();
+  if (me?.role === "owner") return <Owner.OwnerAgentsPage />;
+  return <Modules.TeamAgentsPage />;
+}
+
+function TeamGpsByRole() {
+  const { me } = useAuth();
+  if (me?.role === "owner") return <Owner.OwnerGpsPage />;
+  return <Manager.ManagerGpsPage />;
+}
+
+function CampaignsByRole() {
+  const { me } = useAuth();
+  if (me?.role === "owner") return <Owner.OwnerCampaignsPage />;
+  return <Modules.CampaignsPage />;
+}
+
 export function App() {
   const { me, loading, loadMe, mfaPending } = useAuth();
 
@@ -185,17 +215,25 @@ export function App() {
             <Route path="/pipeline/sales" element={<PipelineByLine />} />
             <Route path="/pipeline/leasing" element={<PipelineByLine />} />
             <Route path="/pipeline/forecast" element={<P><ForecastPage /></P>} />
-            <Route path="/reports" element={<P><ReportsPage /></P>} />
+            <Route path="/reports" element={<P><ReportsByRole /></P>} />
             <Route path="/settings" element={<P><SettingsPage /></P>} />
             <Route path="/settings/:section" element={<SettingsSectionRedirect />} />
 
             <Route path="/calendar" element={<P><CalendarPage /></P>} />
+            <Route path="/goals" element={<MP Comp={Agent.AgentGoalsPage} />} />
+            <Route path="/tasks" element={<MP Comp={Agent.AgentTasksPage} />} />
+            <Route path="/field/gps" element={<MP Comp={Agent.AgentGpsCapturePage} />} />
+            <Route path="/portal/invite" element={<MP Comp={Agent.AgentPortalInvitePage} />} />
             <Route path="/comms" element={<P><CommsPage /></P>} />
             <Route path="/comms/templates" element={<P><CommsTemplatesPage /></P>} />
             <Route path="/documents" element={<MP Comp={Modules.DocumentsPage} />} />
 
-            <Route path="/team/agents" element={<MP Comp={Modules.TeamAgentsPage} />} />
+            <Route path="/team/agents" element={<P><TeamAgentsByRole /></P>} />
             <Route path="/team/performance" element={<MP Comp={Modules.TeamPerformancePage} />} />
+            <Route path="/team/owners" element={<MP Comp={Manager.ManagerOwnersPage} />} />
+            <Route path="/team/conflicts" element={<MP Comp={Manager.ManagerConflictsPage} />} />
+            <Route path="/team/gps" element={<P><TeamGpsByRole /></P>} />
+            <Route path="/clients/vip" element={<MP Comp={Owner.OwnerVipClientsPage} />} />
             <Route path="/team/branches" element={<MP Comp={Modules.TeamBranchesPage} />} />
             <Route path="/team/commission-plans" element={<MP Comp={Modules.CommissionPlansPage} />} />
 
@@ -208,6 +246,8 @@ export function App() {
             <Route path="/maintenance" element={<MP Comp={Modules.MaintenancePage} />} />
             <Route path="/maintenance/vendors" element={<MP Comp={Modules.VendorsPage} />} />
             <Route path="/maintenance/reports" element={<MP Comp={Modules.MaintenanceReportsPage} />} />
+            <Route path="/inspections" element={<MP Comp={PropertyManager.InspectionsPage} />} />
+            <Route path="/utilities" element={<MP Comp={PropertyManager.UtilitiesPage} />} />
 
             <Route path="/finance/commissions" element={<MP Comp={Modules.CommissionsPage} />} />
             <Route path="/finance/invoices" element={<MP Comp={Modules.InvoicesPage} />} />
@@ -220,7 +260,7 @@ export function App() {
             <Route path="/finance/reconciliation" element={<MP Comp={Modules.ReconciliationPage} />} />
             <Route path="/finance/integrations/export" element={<MP Comp={Modules.AccountingExportPage} />} />
 
-            <Route path="/marketing/campaigns" element={<MP Comp={Modules.CampaignsPage} />} />
+            <Route path="/marketing/campaigns" element={<P><CampaignsByRole /></P>} />
             <Route path="/marketing/email/templates" element={<MP Comp={Modules.EmailTemplatesPage} />} />
             <Route path="/marketing/email/drip" element={<MP Comp={Modules.DripSequencesPage} />} />
             <Route path="/marketing/email/tracking" element={<MP Comp={Modules.EmailTrackingPage} />} />
@@ -248,25 +288,27 @@ export function App() {
             <Route path="/portal/landlord/statements" element={<MP Comp={Modules.PortalLandlordStatementsPage} />} />
             <Route path="/portal/landlord/leases" element={<MP Comp={Modules.PortalLandlordLeasesPage} />} />
 
-            <Route path="/admin/analytics" element={<MP Comp={Modules.AdminAnalyticsPage} />} />
-            <Route path="/admin/users" element={<MP Comp={Modules.AdminUsersPage} />} />
-            <Route path="/admin/roles" element={<MP Comp={Modules.AdminRolesPage} />} />
-            <Route path="/admin/tenants" element={<MP Comp={Modules.AdminTenantsPage} />} />
-            <Route path="/admin/audit" element={<MP Comp={Modules.AdminAuditPage} />} />
-            <Route path="/admin/backup" element={<MP Comp={Modules.AdminBackupPage} />} />
-            <Route path="/admin/reports/revenue" element={<MP Comp={Modules.AdminRevenueReportsPage} />} />
-            <Route path="/admin/reports/usage" element={<MP Comp={Modules.AdminUsageReportsPage} />} />
-            <Route path="/admin/integrations/email" element={<MP Comp={Modules.AdminEmailSettingsPage} />} />
-            <Route path="/admin/integrations/sms" element={<MP Comp={Modules.AdminSmsSettingsPage} />} />
-            <Route path="/admin/integrations/api-keys" element={<MP Comp={Modules.AdminApiKeysPage} />} />
-            <Route path="/admin/integrations/webhooks" element={<MP Comp={Modules.AdminWebhooksPage} />} />
-            <Route path="/admin/subscriptions/plans" element={<MP Comp={Modules.AdminPlansPage} />} />
-            <Route path="/admin/subscriptions/invoices" element={<MP Comp={Modules.AdminSubInvoicesPage} />} />
-            <Route path="/admin/subscriptions/customers" element={<MP Comp={Modules.AdminCustomersPage} />} />
+            <Route path="/admin/analytics" element={<MP Comp={Admin.AdminAnalyticsPage} />} />
+            <Route path="/admin/actions" element={<MP Comp={Admin.AdminActionsPage} />} />
+            <Route path="/admin/users" element={<MP Comp={Admin.AdminUsersPage} />} />
+            <Route path="/admin/roles" element={<MP Comp={Admin.AdminRolesPage} />} />
+            <Route path="/admin/company" element={<MP Comp={Admin.AdminCompanyPage} />} />
+            <Route path="/admin/org" element={<MP Comp={Admin.AdminOrgPage} />} />
+            <Route path="/admin/settings" element={<MP Comp={Admin.AdminSettingsPage} />} />
+            <Route path="/admin/audit" element={<MP Comp={Admin.AdminAuditPage} />} />
+            <Route path="/admin/backup" element={<MP Comp={Admin.AdminBackupPage} />} />
+            <Route path="/admin/reports" element={<MP Comp={Admin.AdminReportsPage} />} />
+            <Route path="/admin/reports/revenue" element={<MP Comp={Admin.AdminRevenueReportsPage} />} />
+            <Route path="/admin/reports/usage" element={<MP Comp={Admin.AdminUsageReportsPage} />} />
+            <Route path="/admin/integrations/email" element={<MP Comp={Admin.AdminEmailSettingsPage} />} />
+            <Route path="/admin/integrations/sms" element={<MP Comp={Admin.AdminSmsSettingsPage} />} />
+            <Route path="/admin/integrations/api-keys" element={<MP Comp={Admin.AdminApiKeysPage} />} />
+            <Route path="/admin/integrations/webhooks" element={<MP Comp={Admin.AdminWebhooksPage} />} />
+            <Route path="/admin/tickets" element={<MP Comp={Admin.AdminTicketsPage} />} />
 
-            <Route path="/help/docs" element={<MP Comp={Modules.HelpDocsPage} />} />
-            <Route path="/help/chat" element={<MP Comp={Modules.HelpChatPage} />} />
-            <Route path="/help/training" element={<MP Comp={Modules.HelpTrainingPage} />} />
+            <Route path="/help/docs" element={<MP Comp={Admin.HelpDocsPage} />} />
+            <Route path="/help/chat" element={<MP Comp={Admin.HelpChatPage} />} />
+            <Route path="/help/training" element={<MP Comp={Admin.HelpTrainingPage} />} />
 
             <Route path="/reports/leaderboard" element={<MP Comp={Modules.LeaderboardReportPage} />} />
             <Route path="/reports/roi" element={<MP Comp={Modules.RoiReportPage} />} />
@@ -274,7 +316,8 @@ export function App() {
             <Route path="/reports/my-performance" element={<MP Comp={Modules.MyPerformanceReportPage} />} />
             <Route path="/reports/my-commission" element={<MP Comp={Modules.MyCommissionReportPage} />} />
             <Route path="/reports/portfolio" element={<MP Comp={Modules.PortfolioReportsPage} />} />
-            <Route path="/reports/occupancy" element={<MP Comp={Modules.OccupancyReportsPage} />} />
+            <Route path="/reports/occupancy" element={<MP Comp={PropertyManager.OccupancyReportsPage} />} />
+            <Route path="/reports/financial" element={<MP Comp={PropertyManager.LandlordFinancialPage} />} />
 
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

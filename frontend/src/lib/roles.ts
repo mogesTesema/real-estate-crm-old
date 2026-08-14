@@ -4,8 +4,11 @@ import {
   Building2,
   Calendar,
   CircleDollarSign,
+  ClipboardCheck,
+  ClipboardList,
   Contact2,
   CreditCard,
+  Droplets,
   FileText,
   FolderKanban,
   GitBranch,
@@ -16,6 +19,8 @@ import {
   Layers,
   LayoutDashboard,
   Mail,
+  MapPin,
+  Megaphone,
   MessageSquare,
   PieChart,
   Plug,
@@ -71,6 +76,7 @@ export interface NavItem {
 export interface NavGroup {
   label: string;
   items: NavItem[];
+  icon?: LucideIcon;
 }
 
 export interface FlatNavItem {
@@ -84,336 +90,268 @@ function item(to: string, label: string, icon: LucideIcon, end?: boolean): NavIt
   return { to, label, icon, end };
 }
 
+function group(label: string, icon: LucideIcon, items: NavItem[]): NavGroup {
+  return { label, icon, items };
+}
+
 const OWNER_GROUPS: NavGroup[] = [
-  {
-    label: "Dashboard",
-    items: [item("/", "Agency Overview", LayoutDashboard, true)],
-  },
-  {
-    label: "Leads",
-    items: [
-      item("/leads", "All Leads", Users),
-      item("/leads/analytics", "Lead Analytics", BarChart3),
-      item("/leads/routing", "Auto-Assignment Rules", GitBranch),
-      item("/leads/sources", "Lead Sources", Radio),
-    ],
-  },
-  {
-    label: "Properties",
-    items: [
-      item("/properties", "All Listings", Building2),
-      item("/properties/analytics", "Inventory Status", PieChart),
-      item("/projects", "Projects / Developments", Layers),
-      item("/properties/search", "Property Search", Search),
-    ],
-  },
-  {
-    label: "Deals & Pipeline",
-    items: [
-      item("/pipeline", "Pipeline Overview", KanbanSquare),
-      item("/pipeline/sales", "Sales Pipeline", TrendingUp),
-      item("/pipeline/leasing", "Leasing Pipeline", KeyRound),
-      item("/pipeline/forecast", "Forecast", Target),
-    ],
-  },
-  {
-    label: "Team",
-    items: [
-      item("/team/agents", "Agents", Users),
-      item("/team/performance", "Agent Performance", BarChart3),
-      item("/team/branches", "Branches", Building2),
-      item("/team/commission-plans", "Commission Plans", Receipt),
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      item("/finance/transactions", "Transactions", CreditCard),
-      item("/finance/commissions", "Commissions", Receipt),
-      item("/finance/reports", "Financial Reports", FileText),
-      item("/finance/invoices", "Invoices", FileText),
-    ],
-  },
-  {
-    label: "Reports",
-    items: [
-      item("/reports", "Agency Reports", FolderKanban),
-      item("/reports/leaderboard", "Agent Leaderboard", Users),
-      item("/reports/roi", "ROI Reports", PieChart),
-      item("/reports/custom", "Custom Reports", FileText),
-    ],
-  },
-  {
-    label: "Settings",
-    items: [item("/settings", "Settings", Settings)],
-  },
+  group("Dashboard", LayoutDashboard, [
+    item("/", "Agency Overview", LayoutDashboard, true),
+    item("/finance/reports", "Revenue Summary", CircleDollarSign),
+    item("/team/performance", "Team Performance", BarChart3),
+  ]),
+  group("Leads", Users, [
+    item("/leads", "All Leads", Users),
+    item("/leads/analytics", "Lead Analytics", BarChart3),
+    item("/leads/routing", "Auto-Assignment Rules", GitBranch),
+    item("/leads/sources", "Lead Sources", Radio),
+  ]),
+  group("Properties", Building2, [
+    item("/properties", "All Listings", Building2),
+    item("/properties/analytics", "Inventory Status", PieChart),
+    item("/projects", "Projects / Developments", Layers),
+    item("/properties/analytics?view=aging", "Listing Analytics", BarChart3),
+  ]),
+  group("Deals & Pipeline", KanbanSquare, [
+    item("/pipeline", "Pipeline Overview", KanbanSquare),
+    item("/pipeline/sales", "Sales Pipeline", TrendingUp),
+    item("/pipeline/leasing", "Leasing Pipeline", KeyRound),
+    item("/pipeline/forecast", "Forecast", Target),
+  ]),
+  group("Team", Users, [
+    item("/team/agents", "Agents", Users),
+    item("/team/performance", "Agent Performance", BarChart3),
+    item("/team/branches", "Branches", Building2),
+    item("/team/commission-plans", "Commission Plans", Receipt),
+    item("/team/gps", "Field GPS", MapPin),
+  ]),
+  group("Finance", CircleDollarSign, [
+    item("/finance/transactions", "Transactions", CreditCard),
+    item("/finance/commissions", "Commissions", Receipt),
+    item("/finance/reports", "Financial Reports", FileText),
+    item("/finance/invoices", "Invoices", FileText),
+  ]),
+  group("Reports", FolderKanban, [
+    item("/reports", "Agency Reports", FolderKanban),
+    item("/reports/leaderboard", "Agent Leaderboard", Users),
+    item("/reports/roi", "ROI Reports", PieChart),
+    item("/reports/custom", "Custom Reports", FileText),
+  ]),
+  group("Clients", Contact2, [
+    item("/clients/vip", "High-value / VIP", Contact2),
+    item("/clients/vip?view=referrals", "Referral sources", GitBranch),
+  ]),
+  group("Marketing Oversight", Megaphone, [
+    item("/marketing/campaigns", "Approve Campaigns", Megaphone),
+    item("/reports/roi", "Marketing ROI", PieChart),
+  ]),
+  group("Settings", Settings, [
+    item("/settings", "Branch Settings", Settings),
+    item("/team/commission-plans", "Commission Rules", Receipt),
+    item("/settings?tab=org", "Localization", Globe),
+    item("/settings?tab=security", "Security", Shield),
+  ]),
 ];
 
 const MANAGER_GROUPS: NavGroup[] = [
-  {
-    label: "Dashboard",
-    items: [item("/", "Branch Overview", LayoutDashboard, true)],
-  },
-  {
-    label: "Leads",
-    items: [
-      item("/leads", "All Leads", Users),
-      item("/leads/analytics", "KPI / Lead Analytics", BarChart3),
-      item("/leads/routing", "Lead Routing Rules", GitBranch),
-      item("/leads/sources", "Lead Sources", Radio),
-    ],
-  },
-  {
-    label: "Properties",
-    items: [
-      item("/properties", "Inventory Oversight", Building2),
-      item("/properties/analytics", "Listing Analytics", PieChart),
-      item("/projects", "Projects", Layers),
-      item("/properties/search", "Property Search", Search),
-    ],
-  },
-  {
-    label: "Deals & Pipeline",
-    items: [
-      item("/pipeline", "Pipeline Overview", KanbanSquare),
-      item("/pipeline/sales", "Sales Pipeline", TrendingUp),
-      item("/pipeline/leasing", "Leasing Pipeline", KeyRound),
-      item("/pipeline/forecast", "Forecast", Target),
-    ],
-  },
-  {
-    label: "Team",
-    items: [
-      item("/team/agents", "Broker Management", Users),
-      item("/team/performance", "Performance Reviews", BarChart3),
-      item("/finance/commissions", "Commission Oversight", Receipt),
-    ],
-  },
-  {
-    label: "Reports",
-    items: [
-      item("/reports", "Branch Reports", FolderKanban),
-      item("/finance/reports/commission", "Commission Summaries", Receipt),
-    ],
-  },
-  {
-    label: "Settings",
-    items: [
-      item("/settings", "Branch Settings", Settings),
-      item("/settings?tab=org", "Localization / Tax", Globe),
-    ],
-  },
+  group("Dashboard", LayoutDashboard, [
+    item("/", "Branch Overview", LayoutDashboard, true),
+    item("/team/performance", "Team Performance", BarChart3),
+    item("/leads/analytics", "KPI Monitoring", Target),
+  ]),
+  group("Leads", Users, [
+    item("/leads", "All Leads", Users),
+    item("/leads/analytics", "KPI / Lead Analytics", BarChart3),
+    item("/leads/routing", "Lead Routing Rules", GitBranch),
+    item("/leads/sources", "Lead Sources", Radio),
+  ]),
+  group("Properties", Building2, [
+    item("/properties", "Inventory Oversight", Building2),
+    item("/properties/analytics", "Listing Analytics", PieChart),
+    item("/projects", "Projects", Layers),
+    item("/properties/search", "Property Search", Search),
+  ]),
+  group("Deals & Pipeline", KanbanSquare, [
+    item("/pipeline", "Pipeline Overview", KanbanSquare),
+    item("/pipeline/sales", "Sales Pipeline", TrendingUp),
+    item("/pipeline/leasing", "Leasing Pipeline", KeyRound),
+    item("/pipeline/forecast", "Forecast", Target),
+  ]),
+  group("Team", Users, [
+    item("/team/owners", "Register Owners", Users),
+    item("/team/agents", "Agents", Users),
+    item("/team/performance", "Performance Reviews", BarChart3),
+    item("/finance/commissions", "Commission Oversight", Receipt),
+    item("/team/conflicts", "Conflicts", AlertTriangle),
+    item("/team/gps", "Field GPS", MapPin),
+  ]),
+  group("Reports", FolderKanban, [
+    item("/reports", "Branch Reports", FolderKanban),
+    item("/finance/reports/commission", "Commission Summaries", Receipt),
+    item("/reports/leaderboard", "Agent Leaderboard", Users),
+  ]),
+  group("Settings", Settings, [
+    item("/settings", "Branch Settings", Settings),
+    item("/settings?tab=org", "Localization / Tax", Globe),
+  ]),
+];
+
+const PM_GROUPS: NavGroup[] = [
+  group("Dashboard", LayoutDashboard, [
+    item("/", "Portfolio Overview", LayoutDashboard, true),
+    item("/reports/occupancy", "Occupancy Rate", PieChart),
+    item("/properties", "Properties Managed", Building2),
+  ]),
+  group("Properties", Building2, [
+    item("/properties", "Managed Properties", Building2),
+    item("/projects", "Units", Layers),
+    item("/properties/analytics", "Property Status", PieChart),
+  ]),
+  group("Leases", FileText, [
+    item("/leases?status=active", "Active Leases", FileText),
+    item("/leases?status=expiring", "Expiring Soon", Calendar),
+    item("/leases?status=renewed", "Renewals", FileText),
+    item("/leases?status=terminated", "Terminations", AlertTriangle),
+  ]),
+  group("Tenants", Users, [
+    item("/tenants", "All Tenants", Users),
+    item("/tenants?focus=search", "Search Tenants", Search),
+    item("/tenants?new=1", "Add Tenant", Users),
+  ]),
+  group("Rent Collection", Receipt, [
+    item("/rent/invoices", "Rent Invoices", Receipt),
+    item("/rent/payments", "Payments", CreditCard),
+    item("/rent/reports", "Rent Reports", BarChart3),
+    item("/rent/late", "Late Payments", AlertTriangle),
+  ]),
+  group("Maintenance", Wrench, [
+    item("/maintenance", "Work Orders", Wrench),
+    item("/maintenance/vendors", "Vendors", Users),
+    item("/maintenance/reports", "Maintenance Reports", FolderKanban),
+    item("/maintenance?new=1", "New Request", Wrench),
+  ]),
+  group("Inspections & utilities", ClipboardCheck, [
+    item("/inspections", "Move-in / move-out", ClipboardCheck),
+    item("/utilities", "Meters / billback", Droplets),
+  ]),
+  group("Reports", FolderKanban, [
+    item("/reports/portfolio", "Portfolio Reports", FolderKanban),
+    item("/reports/financial", "Financial Reports", CircleDollarSign),
+    item("/reports/occupancy", "Occupancy Reports", PieChart),
+  ]),
+  group("Settings", Settings, [
+    item("/settings?tab=profile", "Property Settings", Settings),
+    item("/settings?tab=notifications", "Alert Settings", Shield),
+  ]),
+];
+
+const AGENT_GROUPS: NavGroup[] = [
+  group("Dashboard", LayoutDashboard, [
+    item("/", "My Performance", LayoutDashboard, true),
+    item("/goals", "My Goals", Target),
+    item("/tasks", "Today's Tasks", ClipboardList),
+  ]),
+  group("Leads", Users, [
+    item("/leads", "My Leads", Users),
+    item("/leads?filter=hot", "Hot Leads", Target),
+    item("/leads?filter=followups", "Follow-ups Due", AlertTriangle),
+    item("/leads?new=1", "Add Lead", Users),
+  ]),
+  group("Contacts", Contact2, [
+    item("/contacts", "My Contacts", Contact2),
+    item("/contacts?role=buyer", "Buyers", Users),
+    item("/contacts?role=seller", "Sellers", Users),
+    item("/contacts?role=tenant", "Tenants", Users),
+    item("/contacts?new=1", "Add Contact", Contact2),
+  ]),
+  group("Properties", Building2, [
+    item("/properties", "My Listings", Building2),
+    item("/properties/search", "Search Properties", Search),
+    item("/projects", "Project Units", Layers),
+    item("/properties?new=1", "Add Listing", Building2),
+  ]),
+  group("My Deals", KanbanSquare, [
+    item("/pipeline", "My Pipeline", KanbanSquare),
+    item("/pipeline/sales", "Sales Pipeline", TrendingUp),
+    item("/pipeline/leasing", "Leasing Pipeline", KeyRound),
+    item("/pipeline?status=won", "Won Deals", Target),
+    item("/pipeline?status=lost", "Lost Deals", AlertTriangle),
+  ]),
+  group("Calendar", Calendar, [
+    item("/calendar", "My Calendar", Calendar),
+    item("/calendar?type=viewing", "Viewings", Calendar),
+    item("/calendar?type=task", "Tasks", Target),
+    item("/calendar?new=1", "Add Event", Calendar),
+  ]),
+  group("Communications", MessageSquare, [
+    item("/comms?channel=email", "Email", Mail),
+    item("/comms?channel=sms", "SMS", MessageSquare),
+    item("/comms?channel=whatsapp", "WhatsApp", MessageSquare),
+    item("/comms?channel=call", "Call Log", MessageSquare),
+    item("/comms/templates", "Message Templates", FileText),
+  ]),
+  group("Documents", FileText, [
+    item("/documents", "My Documents", FileText),
+    item("/documents?type=template", "Templates", FileText),
+    item("/documents?shared=1", "Shared Documents", FolderKanban),
+  ]),
+  group("Field activity", MapPin, [
+    item("/field/gps", "Location tracking", MapPin),
+    item("/calendar?type=viewing", "Viewing check-in", Calendar),
+  ]),
+  group("Clients", Contact2, [
+    item("/portal/invite", "Invite to portal", Globe),
+    item("/contacts", "My Contacts", Contact2),
+  ]),
+  group("Reports", BarChart3, [
+    item("/reports/my-performance", "My Performance Report", BarChart3),
+    item("/reports/my-commission", "Commission Report", Receipt),
+  ]),
+  group("Settings", Settings, [
+    item("/settings?tab=profile", "My Profile", Settings),
+    item("/settings?tab=notifications", "Notifications", Mail),
+    item("/settings?tab=security", "Quick Settings", Shield),
+  ]),
 ];
 
 export const ROLE_NAV: Record<RoleKey, NavGroup[]> = {
   super_admin: [
-    {
-      label: "Dashboard",
-      items: [
-        item("/", "Overview", LayoutDashboard, true),
-        item("/admin/analytics", "System Analytics", BarChart3),
-      ],
-    },
-    {
-      label: "Administration",
-      items: [
-        item("/admin/users", "All Users", Users),
-        item("/admin/roles", "Roles & Permissions", Shield),
-        item("/admin/tenants", "Companies / Tenants", Building2),
-        item("/settings", "System Settings", Settings),
-        item("/admin/audit", "Audit Log", FileText),
-        item("/admin/backup", "Data Backup", FolderKanban),
-      ],
-    },
-    {
-      label: "CRM",
-      items: [
-        item("/leads", "Leads", Users),
-        item("/contacts", "Contacts", Contact2),
-        item("/properties", "Properties", Building2),
-        item("/pipeline", "Pipeline", KanbanSquare),
-        item("/projects", "Projects", Layers),
-      ],
-    },
-    {
-      label: "Reports",
-      items: [
-        item("/reports", "System Reports", FolderKanban),
-        item("/admin/reports/revenue", "Revenue Reports", CircleDollarSign),
-        item("/admin/reports/usage", "Usage Analytics", BarChart3),
-      ],
-    },
-    {
-      label: "Integrations",
-      items: [
-        item("/admin/integrations/email", "Email Settings", Mail),
-        item("/admin/integrations/sms", "SMS / WhatsApp Settings", MessageSquare),
-        item("/admin/integrations/api-keys", "API Keys", KeyRound),
-        item("/admin/integrations/webhooks", "Webhooks", Plug),
-      ],
-    },
-    {
-      label: "Subscriptions",
-      items: [
-        item("/admin/subscriptions/plans", "Plans & Pricing", CreditCard),
-        item("/admin/subscriptions/invoices", "Invoices", Receipt),
-        item("/admin/subscriptions/customers", "Customers", Users),
-      ],
-    },
-    {
-      label: "Help & Support",
-      items: [
-        item("/help/docs", "Documentation", HelpCircle),
-        item("/help/chat", "Support Chat", MessageSquare),
-        item("/help/training", "Training Videos", Globe),
-      ],
-    },
+    group("Dashboard", LayoutDashboard, [
+      item("/", "Overview", LayoutDashboard, true),
+      item("/admin/analytics", "System Analytics", BarChart3),
+      item("/admin/actions", "Quick Actions", Target),
+    ]),
+    group("Administration", Shield, [
+      item("/admin/users", "All Users", Users),
+      item("/admin/roles", "Roles & Permissions", Shield),
+      item("/admin/company", "Company Profile", Building2),
+      item("/admin/org", "Branches & Teams", GitBranch),
+      item("/admin/settings", "System Settings", Settings),
+      item("/admin/audit", "Audit Log", FileText),
+      item("/admin/backup", "Data Backup", FolderKanban),
+    ]),
+    group("Reports", FolderKanban, [
+      item("/admin/reports", "System Reports", FolderKanban),
+      item("/admin/reports/revenue", "Revenue Reports", CircleDollarSign),
+      item("/admin/reports/usage", "Usage Analytics", BarChart3),
+    ]),
+    group("Integrations", Plug, [
+      item("/admin/integrations/email", "Email Settings", Mail),
+      item("/admin/integrations/sms", "SMS / WhatsApp Settings", MessageSquare),
+      item("/admin/integrations/api-keys", "API Keys", KeyRound),
+      item("/admin/integrations/webhooks", "Webhooks", Plug),
+    ]),
+    group("Help & Support", HelpCircle, [
+      item("/help/docs", "Documentation", HelpCircle),
+      item("/help/chat", "Support Chat", MessageSquare),
+      item("/help/training", "Training Videos", Globe),
+      item("/admin/tickets", "Support Tickets", FileText),
+    ]),
   ],
   owner: OWNER_GROUPS,
   manager: MANAGER_GROUPS,
-  agent: [
-    {
-      label: "Dashboard",
-      items: [item("/", "My Performance", LayoutDashboard, true)],
-    },
-    {
-      label: "Leads",
-      items: [
-        item("/leads", "My Leads", Users),
-        item("/leads?filter=hot", "Hot Leads", Target),
-        item("/leads?filter=followups", "Follow-ups Due", AlertTriangle),
-        item("/leads?new=1", "Add Lead", Users),
-      ],
-    },
-    {
-      label: "Contacts",
-      items: [
-        item("/contacts", "My Contacts", Contact2),
-        item("/contacts?role=buyer", "Buyers", Users),
-        item("/contacts?role=seller", "Sellers", Users),
-        item("/contacts?role=tenant", "Tenants", Users),
-        item("/contacts?new=1", "Add Contact", Contact2),
-      ],
-    },
-    {
-      label: "Properties",
-      items: [
-        item("/properties", "My Listings", Building2),
-        item("/properties/search", "Search Properties", Search),
-        item("/projects", "Project Units", Layers),
-        item("/properties?new=1", "Add Listing", Building2),
-      ],
-    },
-    {
-      label: "My Deals",
-      items: [
-        item("/pipeline", "My Pipeline", KanbanSquare),
-        item("/pipeline/sales", "Sales Pipeline", TrendingUp),
-        item("/pipeline/leasing", "Leasing Pipeline", KeyRound),
-        item("/pipeline?status=won", "Won Deals", Target),
-        item("/pipeline?status=lost", "Lost Deals", AlertTriangle),
-      ],
-    },
-    {
-      label: "Calendar",
-      items: [
-        item("/calendar", "My Calendar", Calendar),
-        item("/calendar?type=viewing", "Viewings", Calendar),
-        item("/calendar?type=task", "Tasks", Target),
-        item("/calendar?new=1", "Add Event", Calendar),
-      ],
-    },
-    {
-      label: "Communications",
-      items: [
-        item("/comms?channel=email", "Email", Mail),
-        item("/comms?channel=sms", "SMS", MessageSquare),
-        item("/comms?channel=whatsapp", "WhatsApp", MessageSquare),
-        item("/comms?channel=call", "Call Log", MessageSquare),
-        item("/comms/templates", "Message Templates", FileText),
-      ],
-    },
-    {
-      label: "Documents",
-      items: [
-        item("/documents", "My Documents", FileText),
-        item("/documents?type=template", "Templates", FileText),
-        item("/documents?shared=1", "Shared Documents", FolderKanban),
-      ],
-    },
-    {
-      label: "Reports",
-      items: [
-        item("/reports/my-performance", "My Performance Report", BarChart3),
-        item("/reports/my-commission", "Commission Report", Receipt),
-      ],
-    },
-    {
-      label: "Settings",
-      items: [item("/settings", "My Profile", Settings)],
-    },
-  ],
-  property_manager: [
-    {
-      label: "Dashboard",
-      items: [item("/", "Portfolio Overview", LayoutDashboard, true)],
-    },
-    {
-      label: "Properties",
-      items: [
-        item("/properties", "Managed Properties", Building2),
-        item("/projects", "Units / Projects", Layers),
-        item("/properties/analytics", "Property Status", PieChart),
-        item("/properties/search", "Search", Search),
-        item("/contacts", "Contacts", Contact2),
-      ],
-    },
-    {
-      label: "Leases",
-      items: [
-        item("/leases", "Active Leases", FileText),
-        item("/leases?status=expiring", "Expiring Soon", Calendar),
-        item("/leases?status=renewed", "Renewals", FileText),
-        item("/leases?status=terminated", "Terminations", AlertTriangle),
-      ],
-    },
-    {
-      label: "Tenants",
-      items: [
-        item("/tenants", "All Tenants", Users),
-        item("/tenants?new=1", "Add Tenant", Users),
-      ],
-    },
-    {
-      label: "Rent Collection",
-      items: [
-        item("/rent/invoices", "Rent Invoices", Receipt),
-        item("/rent/payments", "Payments", CreditCard),
-        item("/rent/reports", "Rent Reports", BarChart3),
-        item("/rent/late", "Late Payments", AlertTriangle),
-      ],
-    },
-    {
-      label: "Maintenance",
-      items: [
-        item("/maintenance", "Work Orders", Wrench),
-        item("/maintenance/vendors", "Vendors", Users),
-        item("/maintenance/reports", "Maintenance Reports", FolderKanban),
-        item("/maintenance?new=1", "New Request", Wrench),
-      ],
-    },
-    {
-      label: "Reports",
-      items: [
-        item("/reports/portfolio", "Portfolio Reports", FolderKanban),
-        item("/reports/occupancy", "Occupancy Reports", PieChart),
-      ],
-    },
-    {
-      label: "Settings",
-      items: [item("/settings", "Settings", Settings)],
-    },
-  ],
+  agent: AGENT_GROUPS,
+  property_manager: PM_GROUPS,
   marketing: [
     {
       label: "Dashboard",
@@ -624,6 +562,14 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
   "/reports/custom": ["super_admin", "owner"],
   "/reports/portfolio": ["property_manager", "owner", "manager", "super_admin"],
   "/reports/occupancy": ["property_manager", "owner", "manager", "super_admin"],
+  "/reports/financial": ["property_manager", "super_admin"],
+
+  "/goals": ["agent", "super_admin"],
+  "/tasks": ["agent", "super_admin"],
+  "/field/gps": ["agent", "super_admin"],
+  "/portal/invite": ["agent", "super_admin"],
+  "/inspections": ["property_manager", "super_admin"],
+  "/utilities": ["property_manager", "super_admin"],
 
   "/settings": ALL_ROLES,
 
@@ -635,6 +581,10 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
   "/team": ["owner", "manager", "super_admin"],
   "/team/agents": ["owner", "manager", "super_admin"],
   "/team/performance": ["owner", "manager", "super_admin"],
+  "/team/owners": ["manager", "super_admin"],
+  "/team/conflicts": ["manager", "super_admin"],
+  "/team/gps": ["owner", "manager", "super_admin"],
+  "/clients/vip": ["owner", "super_admin"],
   "/team/branches": ["owner", "super_admin"],
   "/team/commission-plans": ["owner", "super_admin"],
 
@@ -694,20 +644,22 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
 
   "/admin": ["super_admin"],
   "/admin/analytics": ["super_admin"],
+  "/admin/actions": ["super_admin"],
   "/admin/users": ["super_admin"],
   "/admin/roles": ["super_admin"],
-  "/admin/tenants": ["super_admin"],
+  "/admin/company": ["super_admin"],
+  "/admin/org": ["super_admin"],
+  "/admin/settings": ["super_admin"],
   "/admin/audit": ["super_admin"],
   "/admin/backup": ["super_admin"],
+  "/admin/reports": ["super_admin"],
   "/admin/reports/revenue": ["super_admin"],
   "/admin/reports/usage": ["super_admin"],
   "/admin/integrations/email": ["super_admin"],
   "/admin/integrations/sms": ["super_admin"],
   "/admin/integrations/api-keys": ["super_admin"],
   "/admin/integrations/webhooks": ["super_admin"],
-  "/admin/subscriptions/plans": ["super_admin"],
-  "/admin/subscriptions/invoices": ["super_admin"],
-  "/admin/subscriptions/customers": ["super_admin"],
+  "/admin/tickets": ["super_admin"],
 
   "/help": ALL_ROLES,
   "/help/docs": ALL_ROLES,

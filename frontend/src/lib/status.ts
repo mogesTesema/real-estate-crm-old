@@ -110,6 +110,46 @@ export const campaignStatusTone: Record<string, Tone> = {
   completed: "info",
 };
 
+export const auditStatusTone: Record<string, Tone> = {
+  login: "info",
+  update: "primary",
+  export: "warning",
+  backup: "success",
+  gps_track_view: "primary",
+  permission_change: "warning",
+  commission_approved: "success",
+  create: "info",
+  delete: "destructive",
+};
+
+/** Platform / governance statuses: backups, tickets, security, org, webhooks. */
+export const systemStatusTone: Record<string, Tone> = {
+  success: "success",
+  healthy: "success",
+  failed: "destructive",
+  failing: "destructive",
+  running: "info",
+  open: "warning",
+  in_progress: "info",
+  resolved: "success",
+  closed: "muted",
+  required: "success",
+  enabled: "info",
+  disabled: "muted",
+  active: "success",
+  inactive: "muted",
+  high: "destructive",
+  medium: "warning",
+  low: "muted",
+  verified: "success",
+  connected: "success",
+  pending: "warning",
+  approved: "success",
+  compliant: "success",
+  missing: "destructive",
+  investigating: "info",
+};
+
 const DOMAIN_MAPS = {
   listing: listingStatusTone,
   lead: leadStatusTone,
@@ -118,6 +158,8 @@ const DOMAIN_MAPS = {
   maintenance: maintenanceStatusTone,
   finance: financeStatusTone,
   campaign: campaignStatusTone,
+  audit: auditStatusTone,
+  system: systemStatusTone,
 } as const;
 
 export type StatusDomain = keyof typeof DOMAIN_MAPS;

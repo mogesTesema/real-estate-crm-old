@@ -253,6 +253,57 @@ export interface DemoWebhook {
   status: "active" | "failing" | "disabled";
 }
 
+export interface DemoCompanyProfile {
+  id: DemoId;
+  name: string;
+  legal_name: string;
+  registration_number: string;
+  tax_number: string;
+  email: string;
+  phone: string;
+  timezone: string;
+  default_currency: string;
+  fx_mode: string;
+  country: string;
+  status: "active";
+}
+
+export interface DemoOrgUnit {
+  id: DemoId;
+  name: string;
+  code: string;
+  type: "branch" | "team";
+  parent: string;
+  manager: string;
+  members: number;
+  status: "active" | "inactive";
+}
+
+export interface DemoSupportTicket {
+  id: DemoId;
+  subject: string;
+  requester: string;
+  priority: "low" | "medium" | "high";
+  status: "open" | "in_progress" | "resolved";
+  updated_at: string;
+}
+
+export interface DemoBackupJob {
+  id: DemoId;
+  type: string;
+  started_at: string;
+  finished_at: string;
+  size: string;
+  status: "success" | "running" | "failed";
+}
+
+export interface DemoSecuritySetting {
+  id: DemoId;
+  name: string;
+  value: string;
+  status: "enabled" | "disabled" | "required";
+}
+
 export interface DemoAgentRow {
   id: DemoId;
   name: string;
@@ -260,7 +311,17 @@ export interface DemoAgentRow {
   deals: number;
   gci: number;
   conversion: number;
-  status: "active" | "inactive";
+  status: "active" | "inactive" | "pending";
+}
+
+export interface DemoVipClient {
+  id: DemoId;
+  name: string;
+  email: string;
+  kind: "buyer" | "seller" | "investor";
+  value: number;
+  referral: string;
+  vip: boolean;
 }
 
 export interface DemoCommissionPlan {
@@ -269,6 +330,35 @@ export interface DemoCommissionPlan {
   type: string;
   rate: string;
   active: boolean;
+}
+
+export interface DemoBrokerOwner {
+  id: DemoId;
+  name: string;
+  email: string;
+  agency: string;
+  agents: number;
+  status: "pending" | "approved" | "active";
+}
+
+export interface DemoFieldSession {
+  id: DemoId;
+  agent: string;
+  activity: string;
+  started_at: string;
+  ended_at: string;
+  points: number;
+  status: "compliant" | "missing" | "active";
+  ownerEmail?: string;
+}
+
+export interface DemoAgentConflict {
+  id: DemoId;
+  subject: string;
+  agents: string;
+  related: string;
+  status: "open" | "investigating" | "resolved";
+  updated_at: string;
 }
 
 export const FIXTURES = {
@@ -675,6 +765,16 @@ export const FIXTURES = {
       spend: 380,
       start_date: daysFromNow(-120),
     },
+    {
+      id: id("camp", 5),
+      name: "Palm Q4 Launch",
+      channel: "Property portals",
+      status: "draft",
+      budget: 18000,
+      leads: 0,
+      spend: 0,
+      start_date: daysFromNow(7),
+    },
   ] as DemoCampaign[],
 
   emailTemplates: [
@@ -1035,6 +1135,30 @@ export const FIXTURES = {
       at: hoursAgo(24),
       ip: "203.0.113.1",
     },
+    {
+      id: id("aud", 5),
+      actor: "Sam Super",
+      action: "GPS_TRACK_VIEW",
+      entity: "Field session SES-014",
+      at: hoursAgo(2),
+      ip: "203.0.113.1",
+    },
+    {
+      id: id("aud", 6),
+      actor: "Sam Super",
+      action: "PERMISSION_CHANGE",
+      entity: "Role agent",
+      at: hoursAgo(6),
+      ip: "203.0.113.1",
+    },
+    {
+      id: id("aud", 7),
+      actor: "System",
+      action: "BACKUP",
+      entity: "Nightly snapshot",
+      at: hoursAgo(14),
+      ip: "127.0.0.1",
+    },
   ] as DemoAuditEvent[],
 
   tenantsAccounts: [
@@ -1131,6 +1255,119 @@ export const FIXTURES = {
     },
   ] as DemoWebhook[],
 
+  companyProfile: [
+    {
+      id: id("co", 1),
+      name: "Demo Realty",
+      legal_name: "Demo Realty LLC",
+      registration_number: "CR-88421",
+      tax_number: "TAX-55201",
+      email: "ops@demo.test",
+      phone: "+971 4 555 0100",
+      timezone: "Asia/Dubai",
+      default_currency: "AED",
+      fx_mode: "SINGLE_CURRENCY",
+      country: "United Arab Emirates",
+      status: "active",
+    },
+  ] as DemoCompanyProfile[],
+
+  orgUnits: [
+    {
+      id: id("br", 1),
+      name: "Downtown Branch",
+      code: "DT",
+      type: "branch",
+      parent: "Demo Realty",
+      manager: "Maya Manager",
+      members: 8,
+      status: "active",
+    },
+    {
+      id: id("br", 2),
+      name: "Marina Branch",
+      code: "MR",
+      type: "branch",
+      parent: "Demo Realty",
+      manager: "Omar Johnson",
+      members: 5,
+      status: "active",
+    },
+    {
+      id: id("tm", 1),
+      name: "Sales Team A",
+      code: "SA",
+      type: "team",
+      parent: "Downtown Branch",
+      manager: "Sarah Khan",
+      members: 4,
+      status: "active",
+    },
+    {
+      id: id("tm", 2),
+      name: "Leasing Team",
+      code: "LT",
+      type: "team",
+      parent: "Marina Branch",
+      manager: "Aisha Al-Farsi",
+      members: 3,
+      status: "active",
+    },
+  ] as DemoOrgUnit[],
+
+  supportTickets: [
+    {
+      id: id("tkt", 1),
+      subject: "SSO login loop for finance users",
+      requester: "Finn Finance",
+      priority: "high",
+      status: "open",
+      updated_at: hoursAgo(3),
+    },
+    {
+      id: id("tkt", 2),
+      subject: "Need extra WhatsApp sender ID",
+      requester: "Mia Marketing",
+      priority: "medium",
+      status: "in_progress",
+      updated_at: hoursAgo(8),
+    },
+    {
+      id: id("tkt", 3),
+      subject: "Backup restore dry-run request",
+      requester: "Alex Morgan",
+      priority: "low",
+      status: "resolved",
+      updated_at: hoursAgo(30),
+    },
+  ] as DemoSupportTicket[],
+
+  backups: [
+    {
+      id: id("bak", 1),
+      type: "Nightly full",
+      started_at: hoursAgo(14),
+      finished_at: hoursAgo(13.5),
+      size: "2.4 GB",
+      status: "success",
+    },
+    {
+      id: id("bak", 2),
+      type: "Hourly WAL",
+      started_at: hoursAgo(1),
+      finished_at: hoursAgo(0.9),
+      size: "180 MB",
+      status: "success",
+    },
+  ] as DemoBackupJob[],
+
+  securitySettings: [
+    { id: id("sec", 1), name: "MFA required", value: "All staff", status: "required" },
+    { id: id("sec", 2), name: "Password policy", value: "12 chars, mixed", status: "enabled" },
+    { id: id("sec", 3), name: "IP allowlist", value: "Office + VPN", status: "enabled" },
+    { id: id("sec", 4), name: "Session timeout", value: "30 minutes", status: "enabled" },
+  ] as DemoSecuritySetting[],
+
   agents: [
     {
       id: id("agt", 1),
@@ -1168,7 +1405,46 @@ export const FIXTURES = {
       conversion: 14,
       status: "inactive",
     },
+    {
+      id: id("agt", 5),
+      name: "Lina Rahman",
+      email: "agent5@demo.test",
+      deals: 0,
+      gci: 0,
+      conversion: 0,
+      status: "pending",
+    },
   ] as DemoAgentRow[],
+
+  vipClients: [
+    {
+      id: id("vip", 1),
+      name: "Hassan Al-Maktoum",
+      email: "hassan.vip@example.com",
+      kind: "investor",
+      value: 4200000,
+      referral: "Downtown Realty board",
+      vip: true,
+    },
+    {
+      id: id("vip", 2),
+      name: "Elena Rossi",
+      email: "elena.rossi@example.com",
+      kind: "buyer",
+      value: 1850000,
+      referral: "Sarah Khan",
+      vip: true,
+    },
+    {
+      id: id("vip", 3),
+      name: "Marina Holdings",
+      email: "acquisitions@marinaholdings.example",
+      kind: "seller",
+      value: 9100000,
+      referral: "",
+      vip: true,
+    },
+  ] as DemoVipClient[],
 
   commissionPlans: [
     {
@@ -1193,6 +1469,85 @@ export const FIXTURES = {
       active: true,
     },
   ] as DemoCommissionPlan[],
+
+  brokerOwners: [
+    {
+      id: id("own", 1),
+      name: "Alex Morgan",
+      email: "owner@demo.test",
+      agency: "Downtown Realty",
+      agents: 5,
+      status: "active",
+    },
+    {
+      id: id("own", 2),
+      name: "Nora Haddad",
+      email: "nora.owner@demo.test",
+      agency: "Marina Desk",
+      agents: 2,
+      status: "pending",
+    },
+  ] as DemoBrokerOwner[],
+
+  fieldSessions: [
+    {
+      id: id("gps", 1),
+      agent: "Sarah Khan",
+      activity: "Viewing — Marina Tower 12B",
+      started_at: hoursAgo(3),
+      ended_at: hoursAgo(2.2),
+      points: 18,
+      status: "compliant",
+      ownerEmail: "agent1@demo.test",
+    },
+    {
+      id: id("gps", 2),
+      agent: "James Smith",
+      activity: "Sale visit — Downtown Loft",
+      started_at: hoursAgo(8),
+      ended_at: hoursAgo(7),
+      points: 0,
+      status: "missing",
+      ownerEmail: "agent2@demo.test",
+    },
+    {
+      id: id("gps", 3),
+      agent: "Aisha Al-Farsi",
+      activity: "Open house — Creek Residences",
+      started_at: hoursAgo(26),
+      ended_at: hoursAgo(24),
+      points: 42,
+      status: "compliant",
+      ownerEmail: "agent3@demo.test",
+    },
+  ] as DemoFieldSession[],
+
+  agentConflicts: [
+    {
+      id: id("cfl", 1),
+      subject: "Lead claimed by two agents",
+      agents: "Sarah Khan · James Smith",
+      related: "Lead LEAD-012",
+      status: "open",
+      updated_at: hoursAgo(5),
+    },
+    {
+      id: id("cfl", 2),
+      subject: "Split dispute on closed deal",
+      agents: "Aisha Al-Farsi · Omar Johnson",
+      related: "Deal OPP-008",
+      status: "investigating",
+      updated_at: hoursAgo(20),
+    },
+    {
+      id: id("cfl", 3),
+      subject: "Territory overlap — Marina",
+      agents: "Sarah Khan · Aisha Al-Farsi",
+      related: "Listing PL-044",
+      status: "resolved",
+      updated_at: hoursAgo(48),
+    },
+  ] as DemoAgentConflict[],
 };
 
 export type DemoResource = keyof typeof FIXTURES;
