@@ -2,7 +2,7 @@
 
 Quick daily notes on what got done and where things stand. See `frontend-implimentation-plan.md` for full frontend architecture and `implimentation-plan.md` for backend.
 
-**Current state (as of Wed, Aug 12, 2026):** Role-based frontend fulfillment is live for demos and aligned with the latest architecture decisions. All 8 roles have live sidebars, role-specific dashboards, and navigable modules. Live API modules (leads/contacts/properties/pipeline) remain wired; leases/finance/marketing/portal/admin use an in-browser demo-data layer with per-resource isolation. Seed every role via `python manage.py seed_demo --reset` - password `demo12345` for all.
+**Current state (as of Wed, Aug 12, 2026):** Role-based frontend fulfillment is live for demos and aligned with the latest architecture decisions. Docs (SRS 2.1 / architecture 3.2 / role definitions) now lock: Super Admin highest authority; Manager → Owner → Agent registration; rental-tenant/portal-client isolation (not SaaS); portal after completed contract; mandatory Property Manager; sales-officer GPS field tracking. Live API modules (leads/contacts/properties/pipeline) remain wired; leases/finance/marketing/portal/admin use an in-browser demo-data layer with per-resource isolation. Seed every role via `python manage.py seed_demo --reset` - password `demo12345` for all.
 
 **Demo logins**
 | Email | Role |
@@ -80,7 +80,7 @@ Frontend demo modules enforce a written **all / own** resource-access contract i
 
 **Out of scope for this pass:** backend API endpoint allowlists / object-level RBAC are role-scoped within the company but not yet action-hard; real finance/lease/maintenance models are still frontend-demo only.
 
-**Product scope:** single real estate company (not SaaS). **Tenant** = rental tenant only.
+**Product scope:** single real estate company (not SaaS). **Tenant** = rental tenant only. **Multi-tenant isolation** = rental-tenant / portal-client isolation (one client cannot see another’s private data). **Super Admin** = highest authority.
 
 ---
 
