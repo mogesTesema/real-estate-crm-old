@@ -37,6 +37,8 @@ export interface ResourceListPageProps {
   /** Extra fixed filter merged with URL params. */
   fixedFilter?: Record<string, unknown>;
   toolbar?: ReactNode;
+  /** Called instead of the generic add toast when `?new=1` is present. */
+  onNew?: () => void;
 }
 
 function cellValue(
@@ -74,6 +76,7 @@ export function ResourceListPage({
   actions,
   fixedFilter,
   toolbar,
+  onNew,
 }: ResourceListPageProps) {
   const [params, setParams] = useSearchParams();
   const [q, setQ] = useState("");
@@ -84,11 +87,12 @@ export function ResourceListPage({
 
   useEffect(() => {
     if (!params.get("new")) return;
-    toast.success(`Add ${title.toLowerCase()} (demo) — create persists in Round 2.`);
+    if (onNew) onNew();
+    else toast.success(`Add ${title.toLowerCase()} (demo) — create persists in Round 2.`);
     const next = new URLSearchParams(params);
     next.delete("new");
     setParams(next, { replace: true });
-  }, [params, setParams, title]);
+  }, [params, setParams, title, onNew]);
   const filter = useMemo(
     () => ({
       ...fixedFilter,

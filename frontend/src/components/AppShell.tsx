@@ -14,7 +14,7 @@ import { cn } from "../lib/cn";
 import { useAuth } from "../lib/auth";
 import { humanize } from "../lib/status";
 import { useTheme } from "../lib/theme";
-import { groupsForRole } from "../lib/roles";
+import { groupsForSession } from "../lib/roles";
 import { CommandPalette } from "./CommandPalette";
 import { GlobalSearch } from "./GlobalSearch";
 import { MobileFab } from "./MobileFab";
@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [palette, setPalette] = useState(false);
   const [search, setSearch] = useState(false);
 
-  const groups = useMemo(() => groupsForRole(me?.role), [me?.role]);
+  const groups = useMemo(() => groupsForSession(me?.role, me?.email), [me?.role, me?.email]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,7 +55,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               me?.role === "manager" ||
               me?.role === "owner" ||
               me?.role === "agent" ||
-              me?.role === "property_manager"
+              me?.role === "property_manager" ||
+              me?.role === "finance" ||
+              me?.role === "marketing" ||
+              me?.role === "portal"
             }
             onNavigate={() => setOpen(false)}
           />

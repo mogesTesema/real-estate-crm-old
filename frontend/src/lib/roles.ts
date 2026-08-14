@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   BarChart3,
+  Bell,
   Building2,
   Calendar,
   CircleDollarSign,
@@ -245,6 +246,93 @@ const PM_GROUPS: NavGroup[] = [
   ]),
 ];
 
+const FINANCE_GROUPS: NavGroup[] = [
+  group("Dashboard", LayoutDashboard, [
+    item("/", "Financial Overview", LayoutDashboard, true),
+    item("/finance/reports", "Revenue Summary", CircleDollarSign),
+    item("/finance/pending", "Pending Payments", AlertTriangle),
+  ]),
+  group("Commissions", Receipt, [
+    item("/finance/commissions", "All Commissions", Receipt),
+    item("/finance/commissions?status=pending_approval", "Pending Approval", AlertTriangle),
+    item("/finance/commissions?status=approved", "Approved", Receipt),
+    item("/finance/commissions?status=paid", "Paid", CreditCard),
+  ]),
+  group("Invoices", FileText, [
+    item("/finance/invoices", "All Invoices", FileText),
+    item("/finance/invoices?status=issued", "Pending Invoices", FileText),
+    item("/finance/invoices?status=paid", "Paid Invoices", CircleDollarSign),
+    item("/finance/vat", "VAT Reports", FileText),
+  ]),
+  group("Transactions", CreditCard, [
+    item("/finance/transactions", "All Transactions", CreditCard),
+    item("/finance/milestones", "Payment Milestones", Target),
+    item("/finance/reconciliation", "Reconciliation", Plug),
+  ]),
+  group("Trust & audit", Shield, [
+    item("/finance/escrow", "Trust / escrow", Shield),
+    item("/finance/audit", "Audit records", FileText),
+  ]),
+  group("Reports", FolderKanban, [
+    item("/finance/reports", "Financial Reports", FolderKanban),
+    item("/finance/reports/commission", "Commission Summary", Receipt),
+    item("/finance/vat", "VAT Summary", FileText),
+    item("/finance/reports/pnl", "Profit / Loss", PieChart),
+  ]),
+  group("Integrations", Plug, [
+    item("/finance/integrations/export", "Accounting Export", Plug),
+    item("/finance/reconciliation", "Reconciliation Tools", Plug),
+  ]),
+  group("Settings", Settings, [
+    item("/finance/tax", "Tax Settings", Settings),
+    item("/finance/commission-rules", "Commission Rules", Receipt),
+  ]),
+];
+
+const MARKETING_GROUPS: NavGroup[] = [
+  group("Dashboard", LayoutDashboard, [
+    item("/", "Campaign Overview", LayoutDashboard, true),
+    item("/marketing/leads", "Lead Generation", Radio),
+    item("/marketing/reports/roi", "ROI Analysis", PieChart),
+  ]),
+  group("Campaigns", Megaphone, [
+    item("/marketing/campaigns", "All Campaigns", Target),
+    item("/marketing/campaigns?status=active", "Active Campaigns", Target),
+    item("/marketing/campaigns/performance", "Performance", BarChart3),
+    item("/marketing/campaigns?new=1", "New Campaign", Target),
+  ]),
+  group("Email Marketing", Mail, [
+    item("/marketing/email/templates", "Templates", Mail),
+    item("/marketing/email/drip", "Drip Sequences", Mail),
+    item("/marketing/email/tracking", "Open / Click Tracking", BarChart3),
+    item("/marketing/email/create", "Create Email", Mail),
+  ]),
+  group("Social Media", Globe, [
+    item("/marketing/social", "Ad Campaigns", Globe),
+    item("/marketing/social/leads", "Lead Ads Capture", Radio),
+    item("/marketing/social/roi", "ROI Tracking", PieChart),
+  ]),
+  group("Website", Globe, [
+    item("/marketing/website/landing", "Landing Pages", Globe),
+    item("/marketing/website/microsites", "Property Microsites", Building2),
+    item("/marketing/website/analytics", "Website Analytics", BarChart3),
+  ]),
+  group("Content & SEO", FileText, [
+    item("/marketing/content", "Content", FileText),
+    item("/marketing/segments", "Segmentation", Users),
+    item("/marketing/seo", "SEO / public portal", Search),
+  ]),
+  group("Reports", FolderKanban, [
+    item("/marketing/reports", "Marketing Reports", FolderKanban),
+    item("/marketing/reports/roi", "Lead Source ROI", PieChart),
+    item("/marketing/reports/budget", "Campaign Budget", CircleDollarSign),
+  ]),
+  group("Settings", Settings, [
+    item("/marketing/integrations", "Integrations", Plug),
+    item("/marketing/brand", "Brand Settings", Settings),
+  ]),
+];
+
 const AGENT_GROUPS: NavGroup[] = [
   group("Dashboard", LayoutDashboard, [
     item("/", "My Performance", LayoutDashboard, true),
@@ -314,6 +402,122 @@ const AGENT_GROUPS: NavGroup[] = [
   ]),
 ];
 
+/** Portal client kinds (SRS 3.2.2). A login can combine several. */
+export type PortalKind = "tenant" | "landlord" | "buyer" | "seller";
+
+export const PORTAL_DEMO_EMAILS = {
+  combo: "portal@demo.test",
+  tenant: "tenant@demo.test",
+  landlord: "landlord@demo.test",
+  buyer: "buyer@demo.test",
+} as const;
+
+export const PORTAL_KINDS_BY_EMAIL: Record<string, PortalKind[]> = {
+  [PORTAL_DEMO_EMAILS.combo]: ["tenant", "landlord", "buyer"],
+  [PORTAL_DEMO_EMAILS.tenant]: ["tenant"],
+  [PORTAL_DEMO_EMAILS.landlord]: ["landlord"],
+  [PORTAL_DEMO_EMAILS.buyer]: ["buyer", "seller"],
+};
+
+export function portalKindsForEmail(email: string | undefined): PortalKind[] {
+  if (!email) return [];
+  return PORTAL_KINDS_BY_EMAIL[email.toLowerCase()] ?? [];
+}
+
+const PORTAL_DASHBOARD = group("Dashboard", LayoutDashboard, [
+  item("/", "My Activity", LayoutDashboard, true),
+  item("/portal/notifications", "Notifications", Bell),
+]);
+const PORTAL_PROPERTIES = group("Properties", Building2, [
+  item("/portal/searches", "Saved Searches", Search),
+  item("/portal/matches", "Match Properties", Building2),
+  item("/portal/favorites", "Favorites", Target),
+]);
+const PORTAL_DEALS = group("My Deals", KanbanSquare, [
+  item("/portal/deals", "Active Deals", KanbanSquare),
+  item("/portal/offers", "Offers", FileText),
+  item("/portal/deals?status=closed", "Closed Deals", FolderKanban),
+]);
+const PORTAL_DOCUMENTS = group("Documents", FileText, [
+  item("/portal/documents", "Shared Documents", FileText),
+  item("/portal/documents?type=contract", "Contracts", FileText),
+  item("/portal/messages", "Messages", MessageSquare),
+]);
+const PORTAL_SCHEDULE = group("My Schedule", Calendar, [
+  item("/portal/schedule?type=viewing", "Viewings", Calendar),
+  item("/portal/schedule?type=meeting", "Meetings", Calendar),
+]);
+const PORTAL_LEASE = group("My Lease", KeyRound, [
+  item("/portal/lease", "Active Lease", KeyRound),
+  item("/portal/lease/payments", "Rent Payments", CreditCard),
+  item("/portal/lease/maintenance", "Maintenance Requests", Wrench),
+  item("/portal/lease/documents", "Lease Documents", FileText),
+]);
+const PORTAL_LANDLORD = group("My Property", Building2, [
+  item("/portal/landlord/properties", "Listed Properties", Building2),
+  item("/portal/landlord/performance", "Performance Reports", BarChart3),
+  item("/portal/landlord/statements", "Rent Statements", Receipt),
+  item("/portal/landlord/leases", "Lease Management", FileText),
+]);
+const PORTAL_PROFILE = group("My Profile", Settings, [
+  item("/settings?tab=profile", "Edit Profile", Settings),
+  item("/settings?tab=notifications", "Notification Settings", Mail),
+  item("/settings?tab=security", "Security", Shield),
+]);
+
+/** Nav follows which kinds this portal login has — not every portal screen. */
+export function groupsForPortal(kinds: PortalKind[]): NavGroup[] {
+  const has = (k: PortalKind) => kinds.includes(k);
+  const buyerSeller = has("buyer") || has("seller");
+  const out: NavGroup[] = [PORTAL_DASHBOARD];
+  if (buyerSeller) {
+    out.push(PORTAL_PROPERTIES, PORTAL_DEALS);
+  }
+  out.push(PORTAL_DOCUMENTS, PORTAL_SCHEDULE);
+  if (has("tenant")) out.push(PORTAL_LEASE);
+  if (has("landlord")) out.push(PORTAL_LANDLORD);
+  out.push(PORTAL_PROFILE);
+  return out;
+}
+
+/**
+ * Kind gate on top of `canAccess("portal", path)`. Tenant-only lease routes,
+ * landlord-only My Property, buyer/seller property+deal routes. Common portal
+ * surfaces (notifications, messages, documents, schedule) stay open.
+ */
+export function portalCanAccess(email: string | undefined, path: string): boolean {
+  const bare = (path.split("?")[0] || "/").replace(/\/+$/, "") || "/";
+  if (!bare.startsWith("/portal")) return true;
+  if (bare === "/portal/invite") return false;
+
+  const kinds = portalKindsForEmail(email);
+  const has = (k: PortalKind) => kinds.includes(k);
+  const buyerSeller = has("buyer") || has("seller");
+
+  if (
+    bare === "/portal" ||
+    bare === "/portal/notifications" ||
+    bare === "/portal/messages" ||
+    bare === "/portal/documents" ||
+    bare === "/portal/schedule"
+  ) {
+    return true;
+  }
+  if (bare.startsWith("/portal/lease")) return has("tenant");
+  if (bare.startsWith("/portal/landlord")) return has("landlord");
+  if (
+    bare === "/portal/searches" ||
+    bare === "/portal/matches" ||
+    bare === "/portal/favorites" ||
+    bare === "/portal/deals" ||
+    bare === "/portal/offers" ||
+    bare.startsWith("/portal/deals/")
+  ) {
+    return buyerSeller;
+  }
+  return false;
+}
+
 export const ROLE_NAV: Record<RoleKey, NavGroup[]> = {
   super_admin: [
     group("Dashboard", LayoutDashboard, [
@@ -352,166 +556,9 @@ export const ROLE_NAV: Record<RoleKey, NavGroup[]> = {
   manager: MANAGER_GROUPS,
   agent: AGENT_GROUPS,
   property_manager: PM_GROUPS,
-  marketing: [
-    {
-      label: "Dashboard",
-      items: [item("/", "Campaign Overview", LayoutDashboard, true)],
-    },
-    {
-      label: "Lead Generation",
-      items: [item("/leads/sources", "Lead Sources", Radio)],
-    },
-    {
-      label: "Campaigns",
-      items: [
-        item("/marketing/campaigns", "All Campaigns", Target),
-        item("/marketing/campaigns?status=active", "Active Campaigns", Target),
-        item("/marketing/campaigns?new=1", "New Campaign", Target),
-      ],
-    },
-    {
-      label: "Email Marketing",
-      items: [
-        item("/marketing/email/templates", "Templates", Mail),
-        item("/marketing/email/drip", "Drip Sequences", Mail),
-        item("/marketing/email/tracking", "Open / Click Tracking", BarChart3),
-      ],
-    },
-    {
-      label: "Social Media",
-      items: [
-        item("/marketing/social", "Ad Campaigns", Globe),
-        item("/marketing/social/leads", "Lead Ads Capture", Radio),
-      ],
-    },
-    {
-      label: "Website",
-      items: [
-        item("/marketing/website/landing", "Landing Pages", Globe),
-        item("/marketing/website/microsites", "Property Microsites", Building2),
-        item("/marketing/website/analytics", "Website Analytics", BarChart3),
-      ],
-    },
-    {
-      label: "Reports",
-      items: [
-        item("/marketing/reports", "Marketing Reports", FolderKanban),
-        item("/marketing/reports/roi", "Lead Source ROI", PieChart),
-      ],
-    },
-    {
-      label: "Settings",
-      items: [item("/settings", "Settings", Settings)],
-    },
-  ],
-  finance: [
-    {
-      label: "Dashboard",
-      items: [item("/", "Financial Overview", LayoutDashboard, true)],
-    },
-    {
-      label: "Commissions",
-      items: [
-        item("/finance/commissions", "All Commissions", Receipt),
-        item("/finance/commissions?status=pending_approval", "Pending Approval", Receipt),
-        item("/finance/commissions?status=paid", "Paid", CreditCard),
-      ],
-    },
-    {
-      label: "Invoices",
-      items: [
-        item("/finance/invoices", "All Invoices", FileText),
-        item("/finance/invoices?status=issued", "Pending Invoices", FileText),
-        item("/finance/vat", "VAT Reports", FileText),
-      ],
-    },
-    {
-      label: "Transactions",
-      items: [
-        item("/finance/transactions", "All Transactions", CreditCard),
-        item("/finance/milestones", "Payment Milestones", Target),
-        item("/finance/reconciliation", "Reconciliation", Plug),
-      ],
-    },
-    {
-      label: "Reports",
-      items: [
-        item("/finance/reports", "Financial Reports", FolderKanban),
-        item("/finance/reports/commission", "Commission Summary", Receipt),
-        item("/finance/vat", "VAT Summary", FileText),
-        item("/finance/reports/pnl", "Profit / Loss", PieChart),
-      ],
-    },
-    {
-      label: "Integrations",
-      items: [
-        item("/finance/integrations/export", "Accounting Export", Plug),
-        item("/finance/reconciliation", "Reconciliation Tools", Plug),
-      ],
-    },
-    {
-      label: "Settings",
-      items: [item("/settings", "Settings", Settings)],
-    },
-  ],
-  portal: [
-    {
-      label: "Dashboard",
-      items: [item("/", "My Activity", LayoutDashboard, true)],
-    },
-    {
-      label: "Properties",
-      items: [
-        item("/portal/searches", "Saved Searches", Search),
-        item("/portal/matches", "Match Properties", Building2),
-        item("/portal/favorites", "Favorites", Target),
-      ],
-    },
-    {
-      label: "My Deals",
-      items: [
-        item("/portal/deals", "Active Deals", KanbanSquare),
-        item("/portal/offers", "Offers", FileText),
-        item("/portal/deals?status=closed", "Closed Deals", FolderKanban),
-      ],
-    },
-    {
-      label: "Documents",
-      items: [
-        item("/portal/documents", "Shared Documents", FileText),
-        item("/portal/documents?type=contract", "Contracts", FileText),
-      ],
-    },
-    {
-      label: "My Schedule",
-      items: [
-        item("/portal/schedule?type=viewing", "Viewings", Calendar),
-        item("/portal/schedule?type=meeting", "Meetings", Calendar),
-      ],
-    },
-    {
-      label: "My Lease",
-      items: [
-        item("/portal/lease", "Active Lease", KeyRound),
-        item("/portal/lease/payments", "Rent Payments", CreditCard),
-        item("/portal/lease/maintenance", "Maintenance Requests", Wrench),
-        item("/portal/lease/documents", "Lease Documents", FileText),
-      ],
-    },
-    {
-      label: "My Property",
-      items: [
-        item("/portal/landlord/properties", "Listed Properties", Building2),
-        item("/portal/landlord/performance", "Performance Reports", BarChart3),
-        item("/portal/landlord/statements", "Rent Statements", Receipt),
-        item("/portal/landlord/leases", "Lease Management", FileText),
-      ],
-    },
-    {
-      label: "My Profile",
-      items: [item("/settings", "Edit Profile", Settings)],
-    },
-  ],
+  marketing: MARKETING_GROUPS,
+  finance: FINANCE_GROUPS,
+  portal: groupsForPortal(["tenant", "landlord", "buyer", "seller"]),
 };
 
 export function groupsForRole(role: string | undefined): NavGroup[] {
@@ -519,8 +566,21 @@ export function groupsForRole(role: string | undefined): NavGroup[] {
   return ROLE_NAV[r] ?? ROLE_NAV.agent;
 }
 
+export function groupsForSession(role: string | undefined, email?: string): NavGroup[] {
+  if (role === "portal") return groupsForPortal(portalKindsForEmail(email));
+  return groupsForRole(role);
+}
+
 export function navForRole(role: string | undefined): FlatNavItem[] {
-  return groupsForRole(role).flatMap((g) =>
+  return flattenNav(groupsForRole(role));
+}
+
+export function navForSession(role: string | undefined, email?: string): FlatNavItem[] {
+  return flattenNav(groupsForSession(role, email));
+}
+
+function flattenNav(groups: NavGroup[]): FlatNavItem[] {
+  return groups.flatMap((g) =>
     g.items.map((n) => ({ to: n.to, label: n.label, icon: n.icon, end: n.end })),
   );
 }
@@ -535,7 +595,7 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
   "/404": ALL_ROLES,
   "/onboarding": ALL_ROLES,
 
-  "/leads": [...SALES_ROLES, "marketing"],
+  "/leads": SALES_ROLES,
   "/leads/analytics": ADMIN_ROLES,
   "/leads/routing": ADMIN_ROLES,
   "/leads/sources": ["super_admin", "owner", "manager", "marketing"],
@@ -591,11 +651,11 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
   "/leases": ["property_manager", "owner", "manager", "super_admin"],
   "/tenants": ["property_manager", "owner", "manager", "super_admin"],
 
-  "/rent": ["property_manager", "owner", "finance", "super_admin"],
-  "/rent/invoices": ["property_manager", "owner", "finance", "super_admin"],
-  "/rent/payments": ["property_manager", "owner", "finance", "super_admin"],
-  "/rent/reports": ["property_manager", "owner", "finance", "super_admin"],
-  "/rent/late": ["property_manager", "owner", "finance", "super_admin"],
+  "/rent": ["property_manager", "owner", "super_admin"],
+  "/rent/invoices": ["property_manager", "owner", "super_admin"],
+  "/rent/payments": ["property_manager", "owner", "super_admin"],
+  "/rent/reports": ["property_manager", "owner", "super_admin"],
+  "/rent/late": ["property_manager", "owner", "super_admin"],
 
   "/maintenance": ["property_manager", "owner", "manager", "super_admin"],
   "/maintenance/vendors": ["property_manager", "owner", "manager", "super_admin"],
@@ -603,16 +663,26 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
 
   "/marketing": ["marketing", "owner", "super_admin"],
   "/marketing/campaigns": ["marketing", "owner", "super_admin"],
+  "/marketing/campaigns/performance": ["marketing", "super_admin"],
   "/marketing/email/templates": ["marketing", "owner", "super_admin"],
   "/marketing/email/drip": ["marketing", "owner", "super_admin"],
   "/marketing/email/tracking": ["marketing", "owner", "super_admin"],
+  "/marketing/email/create": ["marketing", "super_admin"],
   "/marketing/social": ["marketing", "owner", "super_admin"],
   "/marketing/social/leads": ["marketing", "owner", "super_admin"],
+  "/marketing/social/roi": ["marketing", "super_admin"],
   "/marketing/website/landing": ["marketing", "owner", "super_admin"],
   "/marketing/website/microsites": ["marketing", "owner", "super_admin"],
   "/marketing/website/analytics": ["marketing", "owner", "super_admin"],
   "/marketing/reports": ["marketing", "owner", "super_admin"],
   "/marketing/reports/roi": ["marketing", "owner", "super_admin"],
+  "/marketing/reports/budget": ["marketing", "super_admin"],
+  "/marketing/leads": ["marketing", "super_admin"],
+  "/marketing/integrations": ["marketing", "super_admin"],
+  "/marketing/brand": ["marketing", "super_admin"],
+  "/marketing/content": ["marketing", "super_admin"],
+  "/marketing/segments": ["marketing", "super_admin"],
+  "/marketing/seo": ["marketing", "super_admin"],
 
   "/finance/commissions": ["finance", "owner", "manager", "super_admin"],
   "/finance/reports/commission": ["finance", "owner", "manager", "super_admin"],
@@ -624,8 +694,15 @@ export const ROUTE_ROLES: Record<string, RoleKey[]> = {
   "/finance/reports": ["finance", "owner", "super_admin"],
   "/finance/reports/pnl": ["finance", "owner", "super_admin"],
   "/finance/integrations/export": ["finance", "owner", "super_admin"],
+  "/finance/pending": ["finance", "owner", "super_admin"],
+  "/finance/tax": ["finance", "super_admin"],
+  "/finance/commission-rules": ["finance", "super_admin"],
+  "/finance/escrow": ["finance", "owner", "super_admin"],
+  "/finance/audit": ["finance", "owner", "super_admin"],
 
   "/portal": ["portal"],
+  "/portal/notifications": ["portal"],
+  "/portal/messages": ["portal"],
   "/portal/searches": ["portal"],
   "/portal/matches": ["portal"],
   "/portal/favorites": ["portal"],
@@ -696,5 +773,8 @@ export const DEMO_LOGINS: { email: string; role: RoleKey; label: string }[] = [
   { email: "pm@demo.test", role: "property_manager", label: "Property Manager" },
   { email: "marketing@demo.test", role: "marketing", label: "Marketing" },
   { email: "finance@demo.test", role: "finance", label: "Finance" },
-  { email: "portal@demo.test", role: "portal", label: "Portal User" },
+  { email: "portal@demo.test", role: "portal", label: "Portal (combo)" },
+  { email: "tenant@demo.test", role: "portal", label: "Portal Tenant" },
+  { email: "landlord@demo.test", role: "portal", label: "Portal Landlord" },
+  { email: "buyer@demo.test", role: "portal", label: "Portal Buyer/Seller" },
 ];

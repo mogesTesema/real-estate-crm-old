@@ -6,25 +6,49 @@ import { PageHeader } from "../../components/PageHeader";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { useAuth } from "../../lib/auth";
+import { portalKindsForEmail } from "../../lib/roles";
 
 type Step = { id: string; label: string; to: string };
 
-function stepsForRole(role: string | undefined): Step[] {
+function stepsForRole(role: string | undefined, email?: string): Step[] {
   const base: Step[] = [
     { id: "profile", label: "Confirm your profile name and role", to: "/settings?tab=profile" },
   ];
+  if (role === "portal") {
+    const kinds = portalKindsForEmail(email);
+    const steps = [...base];
+    if (kinds.includes("tenant")) {
+      steps.push(
+        { id: "lease", label: "Open your active lease", to: "/portal/lease" },
+        { id: "pay", label: "Review rent payments", to: "/portal/lease/payments" },
+        { id: "maintenance", label: "Submit a maintenance request", to: "/portal/lease/maintenance" },
+      );
+    }
+    if (kinds.includes("landlord")) {
+      steps.push({ id: "statements", label: "Open rent statements", to: "/portal/landlord/statements" });
+    }
+    if (kinds.includes("buyer") || kinds.includes("seller")) {
+      steps.push(
+        { id: "deals", label: "Review your deals", to: "/portal/deals" },
+        { id: "docs", label: "Open shared documents", to: "/portal/documents" },
+      );
+    }
+    return steps;
+  }
   if (role === "marketing") {
     return [
       ...base,
-      { id: "sources", label: "Review lead sources", to: "/leads/sources" },
-      { id: "analytics", label: "Open lead analytics", to: "/leads/analytics" },
+      { id: "campaigns", label: "Review campaigns", to: "/marketing/campaigns" },
+      { id: "landing", label: "Open landing pages", to: "/marketing/website/landing" },
+      { id: "roi", label: "Check lead-source ROI", to: "/marketing/reports/roi" },
     ];
   }
   if (role === "finance") {
     return [
       ...base,
-      { id: "pipeline", label: "Review pipeline forecast", to: "/pipeline/forecast" },
-      { id: "reports", label: "Open reports", to: "/reports" },
+      { id: "commissions", label: "Review pending commissions", to: "/finance/commissions?status=pending_approval" },
+      { id: "invoices", label: "Open agency invoices", to: "/finance/invoices" },
+      { id: "vat", label: "Check the VAT report", to: "/finance/vat" },
     ];
   }
   if (role === "property_manager") {
@@ -44,7 +68,7 @@ function stepsForRole(role: string | undefined): Step[] {
       { id: "org", label: "Check organization settings", to: "/settings?tab=org" },
     ];
   }
-  // agent / portal / default
+  // agent / default
   return [
     ...base,
     { id: "lead", label: "Capture your first lead", to: "/leads?new=1" },
@@ -57,7 +81,7 @@ function stepsForRole(role: string | undefined): Step[] {
 export function OnboardingPage() {
   const { me } = useAuth();
   const navigate = useNavigate();
-  const steps = useMemo(() => stepsForRole(me?.role), [me?.role]);
+  const steps = useMemo(() => stepsForRole(me?.role, me?.email), [me?.role, me?.email]);
   const [done, setDone] = useState<Record<string, boolean>>(() => {
     try {
       return JSON.parse(localStorage.getItem("onboarding-done") ?? "{}") as Record<

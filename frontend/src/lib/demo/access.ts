@@ -37,6 +37,9 @@ export const DEMO_IDENTITIES = {
   marketing: loginEmail("marketing"),
   finance: loginEmail("finance"),
   portal: loginEmail("portal"),
+  portalTenant: "tenant@demo.test",
+  portalLandlord: "landlord@demo.test",
+  portalBuyer: "buyer@demo.test",
 } as const;
 
 /** Extra seeded agents beyond agent1 (backend seed_demo.py creates agent1..agent5). */
@@ -55,7 +58,7 @@ export const RESOURCE_ACCESS: Partial<Record<DemoResource, ResourceAccessRule>> 
     allScopeRoles: ["manager", "owner", "finance", "super_admin"],
   },
   messages: {
-    roles: ["agent", "manager", "owner", "super_admin"],
+    roles: ["agent", "manager", "owner", "super_admin", "portal"],
     ownerScoped: true,
     allScopeRoles: ["manager", "owner", "super_admin"],
   },
@@ -73,14 +76,14 @@ export const RESOURCE_ACCESS: Partial<Record<DemoResource, ResourceAccessRule>> 
     roles: ["property_manager", "owner", "manager", "super_admin"],
   },
   rentInvoices: {
-    roles: ["property_manager", "owner", "finance", "super_admin", "portal"],
+    roles: ["property_manager", "owner", "super_admin", "portal"],
     ownerScoped: true,
-    allScopeRoles: ["property_manager", "owner", "finance", "super_admin"],
+    allScopeRoles: ["property_manager", "owner", "super_admin"],
   },
   payments: {
-    roles: ["property_manager", "owner", "finance", "super_admin", "portal"],
+    roles: ["property_manager", "owner", "super_admin", "portal"],
     ownerScoped: true,
-    allScopeRoles: ["property_manager", "owner", "finance", "super_admin"],
+    allScopeRoles: ["property_manager", "owner", "super_admin"],
   },
   workOrders: {
     roles: ["property_manager", "owner", "manager", "super_admin", "portal"],

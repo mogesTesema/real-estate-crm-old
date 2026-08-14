@@ -11,6 +11,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 
 import { ModuleDashboard, Panel } from "../../components/ModuleDashboard";
@@ -20,8 +21,7 @@ import { StatusBadge } from "../../components/StatusBadge";
 import { Button } from "../../components/ui/button";
 import { useDemoMutate, useScopedDemoList } from "../../lib/demo";
 import { compactMoney } from "../../lib/format";
-import { humanize } from "../../lib/status";
-import { CalendarPage } from "./CalendarPage";
+import { MarketingRoiPage } from "../marketing/MarketingPages";
 
 /* ---------- Agent / shared ---------- */
 
@@ -456,17 +456,28 @@ export function CommissionsPage() {
         { key: "period", header: "Period" },
       ]}
       toolbar={
-        <Can roles={["finance", "owner", "manager", "super_admin"]}>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              mutate.patch("com-001", { status: "approved" });
-              toast.success("Pending commissions approved (demo)");
-            }}
-          >
-            Approve pending
-          </Button>
+        <Can roles={["finance", "owner", "super_admin"]}>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                mutate.patch("com-001", { status: "approved" });
+                toast.success("Pending commissions approved (demo)");
+              }}
+            >
+              Approve pending
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                mutate.patch("com-002", { status: "paid" });
+                toast.success("Approved commissions marked paid (demo)");
+              }}
+            >
+              Pay approved
+            </Button>
+          </div>
         </Can>
       }
     />
@@ -478,7 +489,7 @@ export function InvoicesPage() {
   return (
     <ResourceListPage
       title="Invoices"
-      description="Client invoices across sale, rent, and fees."
+      description="Agency client invoices — sale, commission, and fees. Not the property-manager rent roll."
       resource="invoices"
       entity="finance"
       icon={FileText}
@@ -494,16 +505,27 @@ export function InvoicesPage() {
       ]}
       toolbar={
         <Can roles={["finance", "owner", "super_admin"]}>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              mutate.patch("inv-005", { status: "void" });
-              toast.success("Draft invoice voided (demo)");
-            }}
-          >
-            Void draft
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                mutate.patch("inv-005", { status: "void" });
+                toast.success("Draft invoice voided (demo)");
+              }}
+            >
+              Void draft
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                mutate.patch("inv-006", { status: "paid" });
+                toast.success("Issued invoice marked paid (demo)");
+              }}
+            >
+              Mark paid
+            </Button>
+          </div>
         </Can>
       }
     />
@@ -543,7 +565,12 @@ export function VatReportsPage() {
         { label: "VAT collected", value: compactMoney(tax), icon: Receipt, tone: "success" },
         { label: "Taxable invoices", value: rows.length, icon: FileText, tone: "info" },
         { label: "Rate", value: "5%", icon: Target, tone: "primary" },
-        { label: "Period", value: "Aug 2026", icon: BarChart3, tone: "muted" },
+        {
+          label: "Period",
+          value: new Date().toLocaleString("en-US", { month: "short", year: "numeric" }),
+          icon: BarChart3,
+          tone: "muted",
+        },
       ]}
       actions={
         <Can roles={["finance", "owner", "super_admin"]}>
@@ -579,24 +606,7 @@ export function FinanceReportsPage() {
   );
 }
 
-export function PnLPage() {
-  return (
-    <ModuleDashboard
-      title="Profit / Loss"
-      description="Agency P&L snapshot (demo)."
-      stats={[
-        { label: "Revenue", value: compactMoney(428000), icon: CircleDollarSign, tone: "success" },
-        { label: "COGS / splits", value: compactMoney(186000), icon: Receipt, tone: "warning" },
-        { label: "OpEx", value: compactMoney(92000), icon: FileText, tone: "info" },
-        { label: "Net", value: compactMoney(150000), icon: Target, tone: "primary" },
-      ]}
-    />
-  );
-}
-
-export function MilestonesPage() {
-  return <TransactionsPage />;
-}
+export { CommissionSummaryPage, PnLPage, MilestonesPage } from "../finance/FinancePages";
 
 export function ReconciliationPage() {
   return (
@@ -649,18 +659,30 @@ export function AccountingExportPage() {
   );
 }
 
-export function CommissionSummaryPage() {
-  return <MyCommissionReportPage />;
-}
 
 /* ---------- Marketing ---------- */
 
 export function CampaignsPage() {
   const mutate = useDemoMutate("campaigns");
+
+  const createDraft = useCallback(() => {
+    mutate.upsert({
+      id: `camp-${Date.now()}`,
+      name: "New campaign draft",
+      channel: "Email",
+      status: "draft",
+      budget: 0,
+      leads: 0,
+      spend: 0,
+      start_date: new Date().toISOString().slice(0, 10),
+    });
+    toast.success("Draft campaign saved (demo). Owner approves before it goes live.");
+  }, [mutate]);
+
   return (
     <ResourceListPage
       title="Campaigns"
-      description="Email, ads, and nurture campaigns."
+      description="Marketing builds drafts, drips, and ads. Owner approves before a campaign goes live."
       resource="campaigns"
       entity="lead"
       icon={Target}
@@ -674,28 +696,34 @@ export function CampaignsPage() {
         { key: "leads", header: "Leads" },
         { key: "start_date", header: "Started", kind: "date" },
       ]}
+      onNew={createDraft}
       toolbar={
-        <Can roles={["marketing", "owner", "super_admin"]}>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              mutate.patch("camp-003", { status: "paused" });
-              toast.success("Campaign paused (demo)");
-            }}
-          >
-            Pause campaign
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              mutate.patch("camp-001", { budget: 15000 });
-              toast.success("Campaign budget updated (demo)");
-            }}
-          >
-            Edit budget
-          </Button>
+        <Can roles={["marketing", "super_admin"]}>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={createDraft}>
+              Save draft
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                mutate.patch("camp-003", { status: "paused" });
+                toast.success("Campaign paused (demo)");
+              }}
+            >
+              Pause campaign
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                mutate.patch("camp-001", { budget: 15000 });
+                toast.success("Campaign budget updated (demo)");
+              }}
+            >
+              Edit budget
+            </Button>
+          </div>
         </Can>
       }
     />
@@ -721,52 +749,12 @@ export function EmailTemplatesPage() {
   );
 }
 
-export function DripSequencesPage() {
-  return (
-    <ModuleDashboard
-      title="Drip Sequences"
-      description="Lead nurturing automations."
-      stats={[
-        { label: "Active drips", value: 3, icon: Target, tone: "success" },
-        { label: "Enrolled", value: 164, icon: Users, tone: "info" },
-        { label: "Avg open", value: "38%", icon: BarChart3, tone: "primary" },
-        { label: "Conversions", value: 22, icon: CircleDollarSign, tone: "warning" },
-      ]}
-    >
-      <Panel title="Buyer Nurture Drip">
-        <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
-          <li>Day 0 — Welcome + preference capture</li>
-          <li>Day 2 — Matching listings digest</li>
-          <li>Day 5 — Social proof / recent sales</li>
-          <li>Day 10 — Soft CTA to book a viewing</li>
-        </ol>
-      </Panel>
-    </ModuleDashboard>
-  );
-}
-
-export function EmailTrackingPage() {
-  return <EmailTemplatesPage />;
-}
-
-export function SocialAdsPage() {
-  return <CampaignsPage />;
-}
-
-export function SocialLeadsPage() {
-  return (
-    <ModuleDashboard
-      title="Lead Ads Capture"
-      description="Facebook / Instagram lead ads intake."
-      stats={[
-        { label: "Forms live", value: 4, icon: Target, tone: "success" },
-        { label: "Leads (30d)", value: 86, icon: Users, tone: "info" },
-        { label: "Cost / lead", value: compactMoney(86), icon: CircleDollarSign, tone: "warning" },
-        { label: "Synced", value: "100%", icon: Plug, tone: "primary" },
-      ]}
-    />
-  );
-}
+export {
+  DripSequencesPage,
+  EmailTrackingPage,
+  SocialAdsPage,
+  SocialLeadsPage,
+} from "../marketing/MarketingPages";
 
 export function LandingPagesPage() {
   return (
@@ -776,6 +764,7 @@ export function LandingPagesPage() {
       resource="landingPages"
       entity="lead"
       icon={Building2}
+      fixedFilter={{ kind: "landing" }}
       columns={[
         { key: "title", header: "Page" },
         { key: "slug", header: "Slug" },
@@ -787,24 +776,7 @@ export function LandingPagesPage() {
   );
 }
 
-export function MicrositesPage() {
-  return <LandingPagesPage />;
-}
-
-export function WebsiteAnalyticsPage() {
-  return (
-    <ModuleDashboard
-      title="Website Analytics"
-      description="Traffic and conversion for public pages."
-      stats={[
-        { label: "Sessions", value: "12.4k", icon: BarChart3, tone: "info" },
-        { label: "Bounce", value: "41%", icon: Target, tone: "warning" },
-        { label: "Form CVR", value: "3.2%", icon: Users, tone: "success" },
-        { label: "Top page", value: "Marina", icon: Building2, tone: "primary" },
-      ]}
-    />
-  );
-}
+export { MicrositesPage, WebsiteAnalyticsPage, MarketingRoiPage } from "../marketing/MarketingPages";
 
 export function MarketingReportsPage() {
   const campaigns = useScopedDemoList("campaigns", { page_size: 50 });
@@ -820,202 +792,6 @@ export function MarketingReportsPage() {
         { label: "Leads", value: leads, icon: Users, tone: "info" },
         { label: "CPL", value: compactMoney(spend / Math.max(leads, 1)), icon: Target, tone: "primary" },
         { label: "Campaigns", value: rows.length, icon: BarChart3, tone: "success" },
-      ]}
-    />
-  );
-}
-
-export function MarketingRoiPage() {
-  return <MarketingReportsPage />;
-}
-
-/* ---------- Portal ---------- */
-
-export function PortalSearchesPage() {
-  return (
-    <ResourceListPage
-      title="Saved Searches"
-      description="Alerts when matching listings appear."
-      resource="savedSearches"
-      entity="property"
-      icon={Target}
-      columns={[
-        { key: "name", header: "Search" },
-        { key: "criteria", header: "Criteria" },
-        { key: "matches", header: "Matches" },
-        { key: "frequency", header: "Frequency", kind: "badge" },
-      ]}
-    />
-  );
-}
-
-export function PortalMatchesPage() {
-  return <PortalFavoritesPage />;
-}
-
-export function PortalFavoritesPage() {
-  return (
-    <ResourceListPage
-      title="Favorites"
-      description="Properties you are watching."
-      resource="favorites"
-      entity="property"
-      icon={Building2}
-      statusDomain="listing"
-      columns={[
-        { key: "title", header: "Property" },
-        { key: "city", header: "City" },
-        { key: "beds", header: "Beds" },
-        { key: "price", header: "Price", kind: "money" },
-        { key: "status", header: "Status", kind: "status", domain: "listing" },
-      ]}
-    />
-  );
-}
-
-export function PortalDealsPage() {
-  return (
-    <ResourceListPage
-      title="My Deals"
-      description="Active offers and closed transactions."
-      resource="portalDeals"
-      entity="deal"
-      icon={Target}
-      statusDomain="opportunity"
-      columns={[
-        { key: "title", header: "Deal" },
-        { key: "property", header: "Property" },
-        { key: "amount", header: "Amount", kind: "money" },
-        { key: "status", header: "Status", kind: "status", domain: "opportunity" },
-        { key: "updated_at", header: "Updated", kind: "datetime" },
-      ]}
-    />
-  );
-}
-
-export function PortalOffersPage() {
-  return (
-    <ResourceListPage
-      title="Offers"
-      description="Offers you have submitted or received."
-      resource="portalDeals"
-      entity="deal"
-      icon={FileText}
-      fixedFilter={{ status: "offer" }}
-      statusDomain="opportunity"
-      columns={[
-        { key: "title", header: "Offer" },
-        { key: "property", header: "Property" },
-        { key: "amount", header: "Amount", kind: "money" },
-        { key: "status", header: "Status", kind: "status", domain: "opportunity" },
-      ]}
-    />
-  );
-}
-
-export function PortalDocumentsPage() {
-  return <DocumentsPage />;
-}
-
-export function PortalSchedulePage() {
-  return <CalendarPage />;
-}
-
-export function PortalLeasePage() {
-  const leases = useScopedDemoList("leases", {
-    status: "active",
-    leaseRole: "tenant",
-    page_size: 5,
-  });
-  const lease = leases.data?.results?.[0] as unknown as
-    | {
-        reference: string;
-        property: string;
-        unit: string;
-        rent: number;
-        end_date: string;
-        status: string;
-      }
-    | undefined;
-  return (
-    <ModuleDashboard
-      title="Active Lease"
-      description="Your current lease terms."
-      stats={[
-        { label: "Reference", value: lease?.reference ?? "—", icon: KeyRound, tone: "info" },
-        { label: "Rent", value: lease ? compactMoney(lease.rent) : "—", icon: CircleDollarSign, tone: "success" },
-        { label: "Ends", value: lease?.end_date?.slice(0, 10) ?? "—", icon: Target, tone: "warning" },
-        { label: "Status", value: lease ? humanize(lease.status) : "—", icon: FileText, tone: "primary" },
-      ]}
-    >
-      <Panel title="Property">
-        <p className="text-sm">
-          {lease ? `${lease.property} · Unit ${lease.unit}` : "No active lease on file."}
-        </p>
-      </Panel>
-    </ModuleDashboard>
-  );
-}
-
-export function PortalLeasePaymentsPage() {
-  return <RentPaymentsPage />;
-}
-
-export function PortalLeaseMaintenancePage() {
-  return <MaintenancePage />;
-}
-
-export function PortalLeaseDocumentsPage() {
-  return <DocumentsPage />;
-}
-
-export function PortalLandlordPropertiesPage() {
-  return <PortalFavoritesPage />;
-}
-
-export function PortalLandlordPerformancePage() {
-  return <PortfolioReportsPage />;
-}
-
-export function PortalLandlordStatementsPage() {
-  return (
-    <ResourceListPage
-      title="Rent Statements"
-      description="Owner remittance statements."
-      resource="ownerStatements"
-      entity="finance"
-      icon={Receipt}
-      statusDomain="finance"
-      columns={[
-        { key: "property", header: "Property" },
-        { key: "period", header: "Period" },
-        { key: "rent_collected", header: "Collected", kind: "money" },
-        { key: "fees", header: "Fees", kind: "money" },
-        { key: "net", header: "Net", kind: "money" },
-        { key: "status", header: "Status", kind: "status", domain: "finance" },
-      ]}
-    />
-  );
-}
-
-export function PortalLandlordLeasesPage() {
-  return (
-    <ResourceListPage
-      title="Lease Management"
-      description="Leases on properties you own."
-      resource="leases"
-      entity="lease"
-      icon={KeyRound}
-      statusDomain="lease"
-      fixedFilter={{ leaseRole: "landlord" }}
-      columns={[
-        { key: "reference", header: "Ref" },
-        { key: "property", header: "Property" },
-        { key: "unit", header: "Unit" },
-        { key: "tenant", header: "Tenant" },
-        { key: "rent", header: "Rent", kind: "money" },
-        { key: "end_date", header: "End", kind: "date" },
-        { key: "status", header: "Status", kind: "status", domain: "lease" },
       ]}
     />
   );

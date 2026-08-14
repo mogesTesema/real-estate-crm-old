@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../lib/auth";
-import { navForRole } from "../lib/roles";
+import { navForSession } from "../lib/roles";
 import { Dialog, DialogContent } from "./ui/dialog";
 
 interface Action {
@@ -45,7 +45,7 @@ export function CommandPalette({
   }, [open]);
 
   const actions = useMemo<Action[]>(() => {
-    const flat = navForRole(me?.role);
+    const flat = navForSession(me?.role, me?.email);
     const visible = flat.map((n) => n.to.split("?")[0]);
     const can = (prefix: string) =>
       visible.some((to) => to === prefix || to.startsWith(prefix + "/"));
@@ -82,7 +82,7 @@ export function CommandPalette({
       });
     }
     return [...creates, ...nav];
-  }, [me?.role, navigate]);
+  }, [me?.role, me?.email, navigate]);
 
   const filtered = actions.filter((a) =>
     a.label.toLowerCase().includes(query.toLowerCase()),

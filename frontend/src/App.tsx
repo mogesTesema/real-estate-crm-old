@@ -7,7 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ForbiddenPage, NotFoundPage } from "./components/ErrorPages";
 import { Skeleton } from "./components/ui/skeleton";
 import { useAuth } from "./lib/auth";
-import { canAccess } from "./lib/roles";
+import { canAccess, portalCanAccess } from "./lib/roles";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
@@ -22,6 +22,9 @@ import * as Manager from "./features/manager/ManagerPages";
 import * as Owner from "./features/owner/OwnerPages";
 import * as Agent from "./features/agent/AgentPages";
 import * as PropertyManager from "./features/property-manager/PropertyManagerPages";
+import * as Finance from "./features/finance/FinancePages";
+import * as Marketing from "./features/marketing/MarketingPages";
+import * as Portal from "./features/portal/PortalPages";
 import { CalendarPage } from "./features/modules/CalendarPage";
 import { CommsPage, CommsTemplatesPage } from "./features/modules/CommsPage";
 
@@ -84,7 +87,9 @@ function PageFallback() {
 function Guard({ children }: { children: React.ReactNode }) {
   const { me } = useAuth();
   const location = useLocation();
-  const allowed = canAccess(me?.role, location.pathname);
+  const allowed =
+    canAccess(me?.role, location.pathname) &&
+    (me?.role !== "portal" || portalCanAccess(me.email, location.pathname));
 
   useEffect(() => {
     if (!allowed) toast.error("Your role doesn't have access to that page.");
@@ -254,39 +259,56 @@ export function App() {
             <Route path="/finance/transactions" element={<MP Comp={Modules.TransactionsPage} />} />
             <Route path="/finance/vat" element={<MP Comp={Modules.VatReportsPage} />} />
             <Route path="/finance/reports" element={<MP Comp={Modules.FinanceReportsPage} />} />
-            <Route path="/finance/reports/commission" element={<MP Comp={Modules.CommissionSummaryPage} />} />
-            <Route path="/finance/reports/pnl" element={<MP Comp={Modules.PnLPage} />} />
-            <Route path="/finance/milestones" element={<MP Comp={Modules.MilestonesPage} />} />
+            <Route path="/finance/reports/commission" element={<MP Comp={Finance.CommissionSummaryPage} />} />
+            <Route path="/finance/reports/pnl" element={<MP Comp={Finance.PnLPage} />} />
+            <Route path="/finance/milestones" element={<MP Comp={Finance.MilestonesPage} />} />
             <Route path="/finance/reconciliation" element={<MP Comp={Modules.ReconciliationPage} />} />
             <Route path="/finance/integrations/export" element={<MP Comp={Modules.AccountingExportPage} />} />
+            <Route path="/finance/pending" element={<MP Comp={Finance.PendingPaymentsPage} />} />
+            <Route path="/finance/tax" element={<MP Comp={Finance.TaxSettingsPage} />} />
+            <Route path="/finance/commission-rules" element={<MP Comp={Finance.CommissionRulesPage} />} />
+            <Route path="/finance/escrow" element={<MP Comp={Finance.EscrowPage} />} />
+            <Route path="/finance/audit" element={<MP Comp={Finance.AuditRecordsPage} />} />
 
             <Route path="/marketing/campaigns" element={<P><CampaignsByRole /></P>} />
+            <Route path="/marketing/campaigns/performance" element={<MP Comp={Marketing.CampaignPerformancePage} />} />
             <Route path="/marketing/email/templates" element={<MP Comp={Modules.EmailTemplatesPage} />} />
-            <Route path="/marketing/email/drip" element={<MP Comp={Modules.DripSequencesPage} />} />
-            <Route path="/marketing/email/tracking" element={<MP Comp={Modules.EmailTrackingPage} />} />
-            <Route path="/marketing/social" element={<MP Comp={Modules.SocialAdsPage} />} />
-            <Route path="/marketing/social/leads" element={<MP Comp={Modules.SocialLeadsPage} />} />
+            <Route path="/marketing/email/drip" element={<MP Comp={Marketing.DripSequencesPage} />} />
+            <Route path="/marketing/email/tracking" element={<MP Comp={Marketing.EmailTrackingPage} />} />
+            <Route path="/marketing/email/create" element={<MP Comp={Marketing.CreateEmailPage} />} />
+            <Route path="/marketing/social" element={<MP Comp={Marketing.SocialAdsPage} />} />
+            <Route path="/marketing/social/leads" element={<MP Comp={Marketing.SocialLeadsPage} />} />
+            <Route path="/marketing/social/roi" element={<MP Comp={Marketing.SocialRoiPage} />} />
             <Route path="/marketing/website/landing" element={<MP Comp={Modules.LandingPagesPage} />} />
-            <Route path="/marketing/website/microsites" element={<MP Comp={Modules.MicrositesPage} />} />
-            <Route path="/marketing/website/analytics" element={<MP Comp={Modules.WebsiteAnalyticsPage} />} />
+            <Route path="/marketing/website/microsites" element={<MP Comp={Marketing.MicrositesPage} />} />
+            <Route path="/marketing/website/analytics" element={<MP Comp={Marketing.WebsiteAnalyticsPage} />} />
             <Route path="/marketing/reports" element={<MP Comp={Modules.MarketingReportsPage} />} />
-            <Route path="/marketing/reports/roi" element={<MP Comp={Modules.MarketingRoiPage} />} />
+            <Route path="/marketing/reports/roi" element={<MP Comp={Marketing.MarketingRoiPage} />} />
+            <Route path="/marketing/reports/budget" element={<MP Comp={Marketing.CampaignBudgetPage} />} />
+            <Route path="/marketing/leads" element={<MP Comp={Marketing.LeadGenerationPage} />} />
+            <Route path="/marketing/integrations" element={<MP Comp={Marketing.IntegrationsPage} />} />
+            <Route path="/marketing/brand" element={<MP Comp={Marketing.BrandSettingsPage} />} />
+            <Route path="/marketing/content" element={<MP Comp={Marketing.ContentPage} />} />
+            <Route path="/marketing/segments" element={<MP Comp={Marketing.SegmentsPage} />} />
+            <Route path="/marketing/seo" element={<MP Comp={Marketing.SeoPage} />} />
 
-            <Route path="/portal/searches" element={<MP Comp={Modules.PortalSearchesPage} />} />
-            <Route path="/portal/matches" element={<MP Comp={Modules.PortalMatchesPage} />} />
-            <Route path="/portal/favorites" element={<MP Comp={Modules.PortalFavoritesPage} />} />
-            <Route path="/portal/deals" element={<MP Comp={Modules.PortalDealsPage} />} />
-            <Route path="/portal/offers" element={<MP Comp={Modules.PortalOffersPage} />} />
-            <Route path="/portal/documents" element={<MP Comp={Modules.PortalDocumentsPage} />} />
-            <Route path="/portal/schedule" element={<MP Comp={Modules.PortalSchedulePage} />} />
-            <Route path="/portal/lease" element={<MP Comp={Modules.PortalLeasePage} />} />
-            <Route path="/portal/lease/payments" element={<MP Comp={Modules.PortalLeasePaymentsPage} />} />
-            <Route path="/portal/lease/maintenance" element={<MP Comp={Modules.PortalLeaseMaintenancePage} />} />
-            <Route path="/portal/lease/documents" element={<MP Comp={Modules.PortalLeaseDocumentsPage} />} />
-            <Route path="/portal/landlord/properties" element={<MP Comp={Modules.PortalLandlordPropertiesPage} />} />
-            <Route path="/portal/landlord/performance" element={<MP Comp={Modules.PortalLandlordPerformancePage} />} />
-            <Route path="/portal/landlord/statements" element={<MP Comp={Modules.PortalLandlordStatementsPage} />} />
-            <Route path="/portal/landlord/leases" element={<MP Comp={Modules.PortalLandlordLeasesPage} />} />
+            <Route path="/portal/notifications" element={<MP Comp={Portal.PortalNotificationsPage} />} />
+            <Route path="/portal/messages" element={<MP Comp={Portal.PortalMessagesPage} />} />
+            <Route path="/portal/searches" element={<MP Comp={Portal.PortalSearchesPage} />} />
+            <Route path="/portal/matches" element={<MP Comp={Portal.PortalMatchesPage} />} />
+            <Route path="/portal/favorites" element={<MP Comp={Portal.PortalFavoritesPage} />} />
+            <Route path="/portal/deals" element={<MP Comp={Portal.PortalDealsPage} />} />
+            <Route path="/portal/offers" element={<MP Comp={Portal.PortalOffersPage} />} />
+            <Route path="/portal/documents" element={<MP Comp={Portal.PortalDocumentsPage} />} />
+            <Route path="/portal/schedule" element={<MP Comp={Portal.PortalSchedulePage} />} />
+            <Route path="/portal/lease" element={<MP Comp={Portal.PortalLeasePage} />} />
+            <Route path="/portal/lease/payments" element={<MP Comp={Portal.PortalLeasePaymentsPage} />} />
+            <Route path="/portal/lease/maintenance" element={<MP Comp={Portal.PortalLeaseMaintenancePage} />} />
+            <Route path="/portal/lease/documents" element={<MP Comp={Portal.PortalLeaseDocumentsPage} />} />
+            <Route path="/portal/landlord/properties" element={<MP Comp={Portal.PortalLandlordPropertiesPage} />} />
+            <Route path="/portal/landlord/performance" element={<MP Comp={Portal.PortalLandlordPerformancePage} />} />
+            <Route path="/portal/landlord/statements" element={<MP Comp={Portal.PortalLandlordStatementsPage} />} />
+            <Route path="/portal/landlord/leases" element={<MP Comp={Portal.PortalLandlordLeasesPage} />} />
 
             <Route path="/admin/analytics" element={<MP Comp={Admin.AdminAnalyticsPage} />} />
             <Route path="/admin/actions" element={<MP Comp={Admin.AdminActionsPage} />} />

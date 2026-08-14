@@ -11,7 +11,10 @@ import {
   canAccess,
   navForRole,
   groupsForRole,
+  groupsForPortal,
   isAdminRole,
+  portalCanAccess,
+  PORTAL_DEMO_EMAILS,
   ROLE_NAV,
   ROUTE_ROLES,
   ALL_ROLES,
@@ -257,6 +260,127 @@ describe("roles", () => {
     expect(canAccess("property_manager", "/finance/vat")).toBe(false);
   });
 
+  it("keeps Finance nav on financial work only", () => {
+    const groups = groupsForRole("finance");
+    expect(groups.every((g) => g.items.length > 1 && g.icon)).toBe(true);
+    expect(groups.map((g) => g.label)).toEqual([
+      "Dashboard",
+      "Commissions",
+      "Invoices",
+      "Transactions",
+      "Trust & audit",
+      "Reports",
+      "Integrations",
+      "Settings",
+    ]);
+    const financePaths = navForRole("finance").map((n) => n.to.split("?")[0]);
+    expect(financePaths).toContain("/finance/commissions");
+    expect(financePaths).toContain("/finance/invoices");
+    expect(financePaths).toContain("/finance/vat");
+    expect(financePaths).toContain("/finance/pending");
+    expect(financePaths).toContain("/finance/escrow");
+    expect(financePaths).toContain("/finance/tax");
+    expect(financePaths).toContain("/finance/commission-rules");
+    expect(financePaths).toContain("/finance/audit");
+    expect(financePaths).not.toContain("/leads");
+    expect(financePaths).not.toContain("/pipeline");
+    expect(financePaths).not.toContain("/leases");
+    expect(financePaths).not.toContain("/rent/invoices");
+    expect(financePaths).not.toContain("/team/commission-plans");
+    expect(financePaths).not.toContain("/admin/users");
+    expect(financePaths).not.toContain("/reports/my-commission");
+    expect(financePaths).not.toContain("/reports/financial");
+    expect(canAccess("finance", "/rent/invoices")).toBe(false);
+    expect(canAccess("finance", "/finance/vat")).toBe(true);
+    expect(canAccess("finance", "/finance/pending")).toBe(true);
+    expect(canAccess("manager", "/finance/vat")).toBe(false);
+    expect(canAccess("manager", "/finance/commissions")).toBe(true);
+    expect(canAccess("finance", "/leases")).toBe(false);
+    expect(canAccess("agent", "/finance/invoices")).toBe(false);
+    expect(navForRole("owner").map((n) => n.to.split("?")[0])).not.toContain("/finance/pending");
+    expect(navForRole("owner").map((n) => n.to.split("?")[0])).not.toContain("/finance/tax");
+    expect(navForRole("manager").map((n) => n.to.split("?")[0])).not.toContain("/finance/escrow");
+    expect(navForRole("property_manager").map((n) => n.to.split("?")[0])).not.toContain("/finance/audit");
+  });
+
+  it("keeps Marketing nav on campaign work only", () => {
+    const groups = groupsForRole("marketing");
+    expect(groups.every((g) => g.items.length > 1 && g.icon)).toBe(true);
+    expect(groups.map((g) => g.label)).toEqual([
+      "Dashboard",
+      "Campaigns",
+      "Email Marketing",
+      "Social Media",
+      "Website",
+      "Content & SEO",
+      "Reports",
+      "Settings",
+    ]);
+    const marketingPaths = navForRole("marketing").map((n) => n.to.split("?")[0]);
+    expect(marketingPaths).toContain("/marketing/campaigns");
+    expect(marketingPaths).toContain("/marketing/email/drip");
+    expect(marketingPaths).toContain("/marketing/website/landing");
+    expect(marketingPaths).toContain("/marketing/leads");
+    expect(marketingPaths).toContain("/marketing/brand");
+    expect(marketingPaths).not.toContain("/leads");
+    expect(marketingPaths).not.toContain("/pipeline");
+    expect(marketingPaths).not.toContain("/leases");
+    expect(marketingPaths).not.toContain("/finance/invoices");
+    expect(marketingPaths).not.toContain("/admin/users");
+    expect(marketingPaths).not.toContain("/portal/deals");
+    expect(marketingPaths).not.toContain("/field/gps");
+    expect(canAccess("marketing", "/leads")).toBe(false);
+    expect(canAccess("marketing", "/leads/sources")).toBe(true);
+    expect(canAccess("marketing", "/marketing/campaigns")).toBe(true);
+    expect(canAccess("agent", "/marketing/campaigns")).toBe(false);
+    expect(canAccess("owner", "/marketing/campaigns")).toBe(true);
+    expect(canAccess("marketing", "/finance/commissions")).toBe(false);
+    expect(canAccess("marketing", "/pipeline")).toBe(false);
+    expect(navForRole("owner").map((n) => n.to.split("?")[0])).not.toContain("/marketing/leads");
+    expect(navForRole("owner").map((n) => n.to.split("?")[0])).not.toContain("/marketing/brand");
+  });
+
+  it("filters portal nav by client kinds and keeps staff workspaces out", () => {
+    const groups = groupsForRole("portal");
+    expect(groups.every((g) => g.items.length > 1 && g.icon)).toBe(true);
+
+    const tenant = groupsForPortal(["tenant"]).flatMap((g) => g.items.map((i) => i.to.split("?")[0]));
+    expect(tenant).toContain("/portal/lease");
+    expect(tenant).not.toContain("/portal/landlord/statements");
+    expect(tenant).not.toContain("/portal/deals");
+
+    const landlord = groupsForPortal(["landlord"]).flatMap((g) => g.items.map((i) => i.to.split("?")[0]));
+    expect(landlord).toContain("/portal/landlord/statements");
+    expect(landlord).not.toContain("/portal/lease");
+
+    const buyer = groupsForPortal(["buyer", "seller"]).flatMap((g) => g.items.map((i) => i.to.split("?")[0]));
+    expect(buyer).toContain("/portal/deals");
+    expect(buyer).not.toContain("/portal/lease");
+    expect(buyer).not.toContain("/portal/landlord/properties");
+
+    const combo = groupsForPortal(["tenant", "landlord", "buyer"]).flatMap((g) =>
+      g.items.map((i) => i.to.split("?")[0]),
+    );
+    expect(combo).toContain("/portal/lease");
+    expect(combo).toContain("/portal/landlord/statements");
+    expect(combo).toContain("/portal/deals");
+
+    const union = navForRole("portal").map((n) => n.to.split("?")[0]);
+    expect(union).not.toContain("/leads");
+    expect(union).not.toContain("/pipeline");
+    expect(union).not.toContain("/maintenance");
+    expect(union).not.toContain("/finance/invoices");
+    expect(union).not.toContain("/admin/users");
+
+    expect(canAccess("portal", "/maintenance")).toBe(false);
+    expect(canAccess("portal", "/portal/lease/maintenance")).toBe(true);
+    expect(portalCanAccess(PORTAL_DEMO_EMAILS.tenant, "/portal/landlord/statements")).toBe(false);
+    expect(portalCanAccess(PORTAL_DEMO_EMAILS.tenant, "/portal/lease")).toBe(true);
+    expect(portalCanAccess(PORTAL_DEMO_EMAILS.landlord, "/portal/lease")).toBe(false);
+    expect(portalCanAccess(PORTAL_DEMO_EMAILS.buyer, "/portal/deals")).toBe(true);
+    expect(portalCanAccess(PORTAL_DEMO_EMAILS.combo, "/portal/lease")).toBe(true);
+  });
+
   it("has an explicit ROUTE_ROLES entry for every App path prefix used in nav", () => {
     const navPaths = new Set<string>();
     for (const role of ALL_ROLES) {
@@ -392,6 +516,49 @@ describe("demo scope isolation", () => {
       expect(rows.length).toBeGreaterThan(0);
       expect(rows.every((r) => r.ownerEmail === DEMO_IDENTITIES.portal)).toBe(true);
     }
+  });
+
+  it("isolates portal identities from each other", () => {
+    const perryDeals = scopeDemoRows(
+      "portalDeals",
+      FIXTURES.portalDeals as unknown as Record<string, unknown>[],
+      "portal",
+      DEMO_IDENTITIES.portal,
+    );
+    const landlordDeals = scopeDemoRows(
+      "portalDeals",
+      FIXTURES.portalDeals as unknown as Record<string, unknown>[],
+      "portal",
+      DEMO_IDENTITIES.portalLandlord,
+    );
+    expect(landlordDeals.some((r) => perryDeals.some((p) => p.id === r.id))).toBe(false);
+    expect(landlordDeals.every((r) => r.ownerEmail !== DEMO_IDENTITIES.portal)).toBe(true);
+
+    const tenantLeases = scopeDemoRows(
+      "leases",
+      FIXTURES.leases as unknown as Record<string, unknown>[],
+      "portal",
+      DEMO_IDENTITIES.portalTenant,
+    );
+    const landlordLeases = scopeDemoRows(
+      "leases",
+      FIXTURES.leases as unknown as Record<string, unknown>[],
+      "portal",
+      DEMO_IDENTITIES.portalLandlord,
+    );
+    expect(tenantLeases.length).toBeGreaterThan(0);
+    expect(landlordLeases.length).toBeGreaterThan(0);
+    expect(tenantLeases.every((r) => r.ownerEmail === DEMO_IDENTITIES.portalTenant)).toBe(true);
+    expect(landlordLeases.every((r) => r.ownerEmail === DEMO_IDENTITIES.portalLandlord)).toBe(true);
+    expect(tenantLeases.some((t) => landlordLeases.some((l) => l.id === t.id))).toBe(false);
+
+    const tenantMessages = scopeDemoRows(
+      "messages",
+      FIXTURES.messages as unknown as Record<string, unknown>[],
+      "portal",
+      DEMO_IDENTITIES.portalTenant,
+    );
+    expect(tenantMessages.every((r) => r.ownerEmail === DEMO_IDENTITIES.portalTenant)).toBe(true);
   });
 
   it("denies marketing zero-access finance and lease resources", () => {

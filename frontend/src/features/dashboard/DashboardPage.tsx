@@ -32,9 +32,9 @@ export function DashboardPage() {
     manager: "Owners, team pipeline, routing, commissions, and field GPS at a glance.",
     owner: "Agency revenue, GCI, closed deals, and team performance.",
     property_manager: "Occupancy, leases, rent collection, and maintenance.",
-    finance: "Commissions, invoices, and pending payments.",
-    marketing: "Campaign performance, lead generation, and ROI.",
-    portal: "Your deals, documents, lease, and notifications.",
+    finance: "Commissions, invoices, VAT, and payouts — financial only.",
+    marketing: "Campaigns, landing pages, and lead generation — marketing only.",
+    portal: "Your records only — after a completed contract.",
   };
 
   return (
