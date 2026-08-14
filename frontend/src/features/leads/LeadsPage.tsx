@@ -14,6 +14,7 @@ import { SelectField } from "../../components/form/SelectField";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { LEAD_SOURCES, LEAD_TYPES } from "../../lib/constants";
 import { money } from "../../lib/format";
+import { useAuth } from "../../lib/auth";
 import { useList } from "../../lib/hooks";
 import { toneForStatus } from "../../lib/status";
 import { CaptureLeadSheet } from "./CaptureLeadSheet";
@@ -50,6 +51,8 @@ const LEAD_STATUSES = [
 type QuickTab = "all" | "hot" | "followups" | "converted";
 
 export function LeadsPage() {
+  const { me } = useAuth();
+  const isAgent = me?.role === "agent";
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<QuickTab>("all");
@@ -81,7 +84,7 @@ export function LeadsPage() {
     status: status || undefined,
     lead_type: leadType || undefined,
     source: source || undefined,
-    assigned_agent: assignee || undefined,
+    assigned_agent: isAgent ? me?.id || undefined : assignee || undefined,
     sla_breached: tab === "followups" ? true : undefined,
     page_size: 200,
   });
@@ -229,17 +232,19 @@ export function LeadsPage() {
               options={LEAD_SOURCES}
               className="w-36"
             />
-            <SelectField
-              value={assignee}
-              onChange={setAssignee}
-              placeholder="Assignee"
-              options={(agents.data?.results ?? []).map((u) => ({
-                value: u.id,
-                label: u.full_name || u.email,
-              }))}
-              className="w-40"
-            />
-            {(status || leadType || source || assignee) && (
+            {!isAgent && (
+              <SelectField
+                value={assignee}
+                onChange={setAssignee}
+                placeholder="Assignee"
+                options={(agents.data?.results ?? []).map((u) => ({
+                  value: u.id,
+                  label: u.full_name || u.email,
+                }))}
+                className="w-40"
+              />
+            )}
+            {(status || leadType || source || (!isAgent && assignee)) && (
               <Button
                 variant="ghost"
                 size="sm"

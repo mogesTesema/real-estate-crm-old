@@ -1,6 +1,7 @@
 import { Calendar as CalIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { EmptyState } from "../../components/EmptyState";
 import { PageHeader } from "../../components/PageHeader";
@@ -12,12 +13,22 @@ import { relativeTime } from "../../lib/format";
 import { humanize, toneForStatus } from "../../lib/status";
 
 export function CalendarPage() {
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const type = params.get("type") ?? undefined;
   const list = useScopedDemoList<DemoCalendarEvent>("calendar", { type, page_size: 100 });
   const [selected, setSelected] = useState<string | null>(null);
 
-  const rows = list.data?.results ?? [];
+  useEffect(() => {
+    if (params.get("new")) {
+      setSelected("new");
+      toast.success("Add event (demo) — calendar create wires to activities later.");
+      const next = new URLSearchParams(params);
+      next.delete("new");
+      setParams(next, { replace: true });
+    }
+  }, [params, setParams]);
+
+  const rows = useMemo(() => list.data?.results ?? [], [list.data?.results]);
   const byDay = useMemo(() => {
     const map = new Map<string, DemoCalendarEvent[]>();
     for (const e of rows) {

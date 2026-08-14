@@ -27,6 +27,7 @@ import { Skeleton } from "../../components/ui/skeleton";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/cn";
 import { api, apiError } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 import { compactMoney } from "../../lib/format";
 import { useAction, useList } from "../../lib/hooks";
 import { CreateDealSheet } from "./CreateDealSheet";
@@ -189,6 +190,9 @@ function ColumnBox({
 }
 
 export function PipelinePage({ businessLine }: { businessLine?: string } = {}) {
+  const { me } = useAuth();
+  const isAgent = me?.role === "agent";
+  const meId = me?.id ?? "";
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const move = useAction("opportunities");
   const [params, setParams] = useSearchParams();
@@ -206,6 +210,10 @@ export function PipelinePage({ businessLine }: { businessLine?: string } = {}) {
       setCreating(true);
       params.delete("new");
       setParams(params, { replace: true });
+    }
+    const status = params.get("status");
+    if (status === "won" || status === "lost" || status === "open") {
+      setView(status);
     }
   }, [params, setParams]);
 
@@ -265,10 +273,16 @@ export function PipelinePage({ businessLine }: { businessLine?: string } = {}) {
   // Won/lost lists come from the same board data, grouped by outcome.
   const columns = useMemo(() => {
     const cols = board.data ?? [];
-    if (view === "open")
-      return cols.filter((c) => !c.stage.is_won && !c.stage.is_lost);
-    return cols.filter((c) => (view === "won" ? c.stage.is_won : c.stage.is_lost));
-  }, [board.data, view]);
+    const byOutcome =
+      view === "open"
+        ? cols.filter((c) => !c.stage.is_won && !c.stage.is_lost)
+        : cols.filter((c) => (view === "won" ? c.stage.is_won : c.stage.is_lost));
+    if (!isAgent || !meId) return byOutcome;
+    return byOutcome.map((c) => ({
+      ...c,
+      opportunities: c.opportunities.filter((o) => o.assigned_agent === meId),
+    }));
+  }, [board.data, view, isAgent, meId]);
 
   function onDragEnd(e: DragEndEvent) {
     const opp = e.active.data.current?.opp as Opp | undefined;

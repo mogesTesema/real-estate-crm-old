@@ -12,6 +12,7 @@ import { Avatar } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { api, apiError } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 import { CONTACT_ROLES } from "../../lib/constants";
 import { cn } from "../../lib/cn";
 import { downloadCsv, downloadXlsx, toCsv } from "../../lib/csv";
@@ -38,6 +39,8 @@ export interface Contact {
 }
 
 export function ContactsPage() {
+  const { me } = useAuth();
+  const isAgent = me?.role === "agent";
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
@@ -54,19 +57,27 @@ export function ContactsPage() {
       params.delete("new");
       setParams(params, { replace: true });
     }
+    const role = params.get("role");
+    if (role && CONTACT_ROLES.some((r) => r.value === role)) {
+      setRoleFilter(role);
+    }
   }, [params, setParams]);
 
   const { data, isLoading } = useList<Contact>("contacts", {
     search: search || undefined,
     is_vip: vipOnly || undefined,
+    assigned_agent: isAgent ? me?.id || undefined : undefined,
     page_size: 200,
   });
 
   const rows = useMemo(() => {
     const all = data?.results ?? [];
-    if (!roleFilter) return all;
-    return all.filter((c) => c.roles.includes(roleFilter));
-  }, [data, roleFilter]);
+    const mine = isAgent && me?.id
+      ? all.filter((c) => c.assigned_agent === me.id)
+      : all;
+    if (!roleFilter) return mine;
+    return mine.filter((c) => c.roles.includes(roleFilter));
+  }, [data, roleFilter, isAgent, me?.id]);
 
   const columns = useMemo<ColumnDef<Contact, unknown>[]>(
     () => [
@@ -165,6 +176,14 @@ export function ContactsPage() {
     }
   }
 
+  function applyRole(next: string) {
+    setRoleFilter(next);
+    const sp = new URLSearchParams(params);
+    if (next) sp.set("role", next);
+    else sp.delete("role");
+    setParams(sp, { replace: true });
+  }
+
   const viewState = { search, roleFilter, vipOnly };
 
   return (
@@ -192,7 +211,7 @@ export function ContactsPage() {
 
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         <button
-          onClick={() => setRoleFilter("")}
+          onClick={() => applyRole("")}
           className={cn(
             "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
             !roleFilter
@@ -205,7 +224,7 @@ export function ContactsPage() {
         {CONTACT_ROLES.map((r) => (
           <button
             key={r.value}
-            onClick={() => setRoleFilter(roleFilter === r.value ? "" : r.value)}
+            onClick={() => applyRole(roleFilter === r.value ? "" : r.value)}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
               roleFilter === r.value
